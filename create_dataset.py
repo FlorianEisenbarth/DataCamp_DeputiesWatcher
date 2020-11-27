@@ -20,6 +20,14 @@ def read_vote(filename):
     type_vote_code = type_vote["codeTypeVote"]
     type_vote_libelle = type_vote["libelleTypeVote"]
     type_vote_majorite = type_vote["typeMajorite"]
+    # Fix error in data
+    if (
+        type_vote_majorite
+        == "majorité des membres composants composant l'Assemblée nationale"
+    ):
+        type_vote_majorite = (
+            "majorité des membres composant l'Assemblée nationale"
+        )
 
     # Info about members positions
     scrutin = vote["scrutin"]["ventilationVotes"]["organe"]["groupes"][
