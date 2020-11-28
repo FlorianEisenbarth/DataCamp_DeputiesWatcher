@@ -54,7 +54,7 @@ def read_vote(filename):
             "vote_uid": [id_vote],
             "vote_objet": [objet_vote],
             "vote_demandeur": [demandeur_vote],
-            "vote_data": [date_vote],
+            "vote_date": [date_vote],
             "vote_jourSeance": [jourseance_vote],
             "vote_typeCode": [type_vote_code],
             "vote_typeName": [type_vote_libelle],
