@@ -20,6 +20,9 @@ def read_vote(filename):
     type_vote_code = type_vote["codeTypeVote"]
     type_vote_libelle = type_vote["libelleTypeVote"]
     type_vote_majorite = type_vote["typeMajorite"]
+    # TODO
+    # add demandeur
+
     # Fix error in data
     if (
         type_vote_majorite
@@ -50,6 +53,7 @@ def read_vote(filename):
         {
             "vote_uid": [id_vote],
             "vote_objet": [objet_vote],
+            "vote_demandeur": [demandeur_vote],
             "vote_data": [date_vote],
             "vote_jourSeance": [jourseance_vote],
             "vote_typeCode": [type_vote_code],
