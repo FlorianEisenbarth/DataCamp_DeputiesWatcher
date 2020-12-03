@@ -1,0 +1,24 @@
+{
+    "organe": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": "PO58977",
+        "codeType": "API",
+        "libelle": "D\u00e9l\u00e9gation fran\u00e7aise \u00e0 l' Assembl\u00e9e de l'U.E.O.",
+        "libelleEdition": "de la d\u00e9l\u00e9gation fran\u00e7aise \u00e0 l' Assembl\u00e9e de l'U.E.O.",
+        "libelleAbrege": "UEO",
+        "libelleAbrev": "UEO",
+        "viMoDe": {
+            "dateDebut": "1958-12-09",
+            "dateAgrement": null,
+            "dateFin": null
+        },
+        "organeParent": null,
+        "chambre": null,
+        "regime": "5\u00e8me R\u00e9publique",
+        "legislature": null,
+        "secretariat": {
+            "secretaire01": "M. Jean-Luc Lala",
+            "secretaire02": "Mme Anne Rocchesani"
+        }
+    }
+}

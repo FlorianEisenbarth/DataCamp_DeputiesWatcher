@@ -1,0 +1,110 @@
+{
+    "acteur": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": {
+            "@xsi:type": "IdActeur_type",
+            "#text": "PA605963"
+        },
+        "etatCivil": {
+            "ident": {
+                "civ": "M.",
+                "prenom": "\u00c9ric",
+                "nom": "Alauzet",
+                "alpha": "Alauzet",
+                "trigramme": "EAL"
+            },
+            "infoNaissance": {
+                "dateNais": "1958-06-07",
+                "villeNais": "Nancy",
+                "depNais": "Meurthe-et-Moselle",
+                "paysNais": "France"
+            },
+            "dateDeces": null
+        },
+        "profession": {
+            "libelleCourant": "M\u00e9decin",
+            "socProcINSEE": {
+                "catSocPro": "Professions lib\u00e9rales et assimil\u00e9s",
+                "famSocPro": "Cadres et professions intellectuelles sup\u00e9rieures"
+            }
+        },
+        "uri_hatvp": "https://www.hatvp.fr/pages_nominatives/alauzet-eric",
+        "adresses": {
+            "adresse": [
+                {
+                    "@xsi:type": "AdresseMail_Type",
+                    "uid": "AD648486",
+                    "type": "15",
+                    "typeLibelle": "M\u00e8l",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "eric.alauzet@assemblee-nationale.fr"
+                },
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD650377",
+                    "type": "0",
+                    "typeLibelle": "Adresse officielle",
+                    "poids": "1",
+                    "adresseDeRattachement": null,
+                    "intitule": "Assembl\u00e9e nationale",
+                    "numeroRue": "126",
+                    "nomRue": "Rue de l'Universit\u00e9",
+                    "complementAdresse": null,
+                    "codePostal": "75355",
+                    "ville": "Paris 07 SP"
+                },
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD650378",
+                    "type": "2",
+                    "typeLibelle": "Adresse publi\u00e9e de circonscription",
+                    "poids": "22",
+                    "adresseDeRattachement": null,
+                    "intitule": "Permanence parlementaire",
+                    "numeroRue": "59",
+                    "nomRue": "Rue de Belfort",
+                    "complementAdresse": null,
+                    "codePostal": "25000",
+                    "ville": "Besan\u00e7on"
+                },
+                {
+                    "@xsi:type": "AdresseMail_Type",
+                    "uid": "AD650379",
+                    "type": "15",
+                    "typeLibelle": "M\u00e8l",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "depute@alauzet.net"
+                },
+                {
+                    "@xsi:type": "AdresseSiteWeb_Type",
+                    "uid": "AD728586",
+                    "type": "25",
+                    "typeLibelle": "Facebook",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "ericalauzet"
+                },
+                {
+                    "@xsi:type": "AdresseSiteWeb_Type",
+                    "uid": "AD728714",
+                    "type": "22",
+                    "typeLibelle": "Site internet",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "www.alauzet.net/"
+                },
+                {
+                    "@xsi:type": "AdresseSiteWeb_Type",
+                    "uid": "AD729190",
+                    "type": "24",
+                    "typeLibelle": "Twitter",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "@ericalauzet"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,83 @@
+{
+    "acteur": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": {
+            "@xsi:type": "IdActeur_type",
+            "#text": "PA324"
+        },
+        "etatCivil": {
+            "ident": {
+                "civ": "M.",
+                "prenom": "Jean-Yves",
+                "nom": "Autexier",
+                "alpha": "AUTEXIER",
+                "trigramme": null
+            },
+            "infoNaissance": {
+                "dateNais": "1950-01-05",
+                "villeNais": "Ch\u00e2tellerault",
+                "depNais": "Vienne",
+                "paysNais": null
+            },
+            "dateDeces": null
+        },
+        "profession": {
+            "libelleCourant": "Cadre administratif",
+            "socProcINSEE": {
+                "catSocPro": null,
+                "famSocPro": null
+            }
+        },
+        "uri_hatvp": null,
+        "adresses": {
+            "adresse": [
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD44776",
+                    "type": "0",
+                    "typeLibelle": "Adresse officielle",
+                    "poids": "1",
+                    "adresseDeRattachement": null,
+                    "intitule": "Casier de la Poste,",
+                    "numeroRue": null,
+                    "nomRue": null,
+                    "complementAdresse": "Palais Bourbon,",
+                    "codePostal": "75355",
+                    "ville": "Paris 07 SP"
+                },
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD45360",
+                    "type": "2",
+                    "typeLibelle": "Adresse publi\u00e9e de circonscription",
+                    "poids": "21",
+                    "adresseDeRattachement": null,
+                    "intitule": null,
+                    "numeroRue": null,
+                    "nomRue": null,
+                    "complementAdresse": null,
+                    "codePostal": "75011",
+                    "ville": "Paris"
+                },
+                {
+                    "@xsi:type": "AdresseTelephonique_Type",
+                    "uid": "AD47411",
+                    "type": "11",
+                    "typeLibelle": "T\u00e9l\u00e9phone",
+                    "poids": "21",
+                    "adresseDeRattachement": "AD45360",
+                    "valElec": "01 48 06 85 50"
+                },
+                {
+                    "@xsi:type": "AdresseSiteWeb_Type",
+                    "uid": "AD316870",
+                    "type": "23",
+                    "typeLibelle": "Url s\u00e9nateur",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "https://www.senat.fr/senateur/autexier_jean_yves00001a.html"
+                }
+            ]
+        }
+    }
+}

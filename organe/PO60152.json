@@ -1,0 +1,23 @@
+{
+    "organe": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": "PO60152",
+        "codeType": "ORGEXTPARL",
+        "libelle": "Conseil sup\u00e9rieur de l' administration p\u00e9nitentiaire",
+        "libelleEdition": "du conseil sup\u00e9rieur de l' administration p\u00e9nitentiaire",
+        "libelleAbrege": "P\u00e9nitentiaire",
+        "libelleAbrev": "003",
+        "viMoDe": {
+            "dateDebut": "1965-02-19",
+            "dateAgrement": null,
+            "dateFin": "2012-05-14"
+        },
+        "organeParent": null,
+        "chambre": null,
+        "regime": "5\u00e8me R\u00e9publique",
+        "legislature": null,
+        "regimeJuridique": "ART. D.237 du code des proc\u00e9dures p\u00e9nales",
+        "siteInternet": null,
+        "nombreReunionsAnnuelles": null
+    }
+}

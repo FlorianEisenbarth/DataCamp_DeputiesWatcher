@@ -1,0 +1,69 @@
+{
+    "acteur": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": {
+            "@xsi:type": "IdActeur_type",
+            "#text": "PA236"
+        },
+        "etatCivil": {
+            "ident": {
+                "civ": "M.",
+                "prenom": "Manuel",
+                "nom": "Aeschlimann",
+                "alpha": "Aeschlimann",
+                "trigramme": null
+            },
+            "infoNaissance": {
+                "dateNais": "1964-10-22",
+                "villeNais": "Asni\u00e8res-sur-Seine",
+                "depNais": "Hauts-de-Seine",
+                "paysNais": "France"
+            },
+            "dateDeces": null
+        },
+        "profession": {
+            "libelleCourant": "Ma\u00eetre de conf\u00e9rences \u00e0 l'IEP-Paris",
+            "socProcINSEE": {
+                "catSocPro": "Cadres de la fonction publique, professions intellectuelles et  artistiques",
+                "famSocPro": "Cadres et professions intellectuelles sup\u00e9rieures"
+            }
+        },
+        "uri_hatvp": null,
+        "adresses": {
+            "adresse": [
+                {
+                    "@xsi:type": "AdresseSiteWeb_Type",
+                    "uid": "AD324694",
+                    "type": "22",
+                    "typeLibelle": "Site internet",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "www.manuel-aeschlimann.fr"
+                },
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD387087",
+                    "type": "0",
+                    "typeLibelle": "Adresse officielle",
+                    "poids": "1",
+                    "adresseDeRattachement": null,
+                    "intitule": "Assembl\u00e9e nationale,",
+                    "numeroRue": "126",
+                    "nomRue": "Rue de l'Universit\u00e9,",
+                    "complementAdresse": null,
+                    "codePostal": "75355",
+                    "ville": "Paris 07 SP"
+                },
+                {
+                    "@xsi:type": "AdresseMail_Type",
+                    "uid": "AD391606",
+                    "type": "15",
+                    "typeLibelle": "M\u00e8l",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "maeschlimann@assemblee-nationale.fr"
+                }
+            ]
+        }
+    }
+}

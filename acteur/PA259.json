@@ -1,0 +1,92 @@
+{
+    "acteur": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": {
+            "@xsi:type": "IdActeur_type",
+            "#text": "PA259"
+        },
+        "etatCivil": {
+            "ident": {
+                "civ": "Mme",
+                "prenom": "Nicole",
+                "nom": "Ameline",
+                "alpha": "Ameline",
+                "trigramme": null
+            },
+            "infoNaissance": {
+                "dateNais": "1952-07-04",
+                "villeNais": "Saint-Vaast-en-Auge",
+                "depNais": "Calvados",
+                "paysNais": "France"
+            },
+            "dateDeces": null
+        },
+        "profession": {
+            "libelleCourant": "Directrice territoriale",
+            "socProcINSEE": {
+                "catSocPro": "Cadres de la fonction publique, professions intellectuelles et  artistiques",
+                "famSocPro": "Cadres et professions intellectuelles sup\u00e9rieures"
+            }
+        },
+        "uri_hatvp": null,
+        "adresses": {
+            "adresse": [
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD45972",
+                    "type": "2",
+                    "typeLibelle": "Adresse publi\u00e9e de circonscription",
+                    "poids": "22",
+                    "adresseDeRattachement": null,
+                    "intitule": "Permanence parlementaire",
+                    "numeroRue": null,
+                    "nomRue": null,
+                    "complementAdresse": "BP 20096,",
+                    "codePostal": "14603",
+                    "ville": "Honfleur cedex"
+                },
+                {
+                    "@xsi:type": "AdresseTelephonique_Type",
+                    "uid": "AD48305",
+                    "type": "11",
+                    "typeLibelle": "T\u00e9l\u00e9phone",
+                    "poids": "22",
+                    "adresseDeRattachement": "AD45972",
+                    "valElec": "02 31 89 90 06"
+                },
+                {
+                    "@xsi:type": "AdresseTelephonique_Type",
+                    "uid": "AD49875",
+                    "type": "12",
+                    "typeLibelle": "T\u00e9l\u00e9copie",
+                    "poids": "22",
+                    "adresseDeRattachement": "AD45972",
+                    "valElec": "02 31 89 32 07"
+                },
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD386640",
+                    "type": "0",
+                    "typeLibelle": "Adresse officielle",
+                    "poids": "1",
+                    "adresseDeRattachement": null,
+                    "intitule": "Assembl\u00e9e nationale,",
+                    "numeroRue": "126",
+                    "nomRue": "Rue de l'Universit\u00e9,",
+                    "complementAdresse": null,
+                    "codePostal": "75355",
+                    "ville": "Paris 07 SP"
+                },
+                {
+                    "@xsi:type": "AdresseMail_Type",
+                    "uid": "AD391610",
+                    "type": "15",
+                    "typeLibelle": "M\u00e8l",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "nameline@assemblee-nationale.fr"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,101 @@
+{
+    "acteur": {
+        "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "uid": {
+            "@xsi:type": "IdActeur_type",
+            "#text": "PA334"
+        },
+        "etatCivil": {
+            "ident": {
+                "civ": "M.",
+                "prenom": "Jean-Paul",
+                "nom": "Bacquet",
+                "alpha": "Bacquet",
+                "trigramme": null
+            },
+            "infoNaissance": {
+                "dateNais": "1949-03-11",
+                "villeNais": "Saint-Mand\u00e9",
+                "depNais": "Val-de-Marne",
+                "paysNais": null
+            },
+            "dateDeces": null
+        },
+        "profession": {
+            "libelleCourant": "M\u00e9decin",
+            "socProcINSEE": {
+                "catSocPro": "Professions lib\u00e9rales et assimil\u00e9s",
+                "famSocPro": "Cadres et professions intellectuelles sup\u00e9rieures"
+            }
+        },
+        "uri_hatvp": null,
+        "adresses": {
+            "adresse": [
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD386905",
+                    "type": "0",
+                    "typeLibelle": "Adresse officielle",
+                    "poids": "1",
+                    "adresseDeRattachement": null,
+                    "intitule": "Assembl\u00e9e nationale,",
+                    "numeroRue": "126",
+                    "nomRue": "Rue de l'Universit\u00e9,",
+                    "complementAdresse": null,
+                    "codePostal": "75355",
+                    "ville": "Paris 07 SP"
+                },
+                {
+                    "@xsi:type": "AdressePostale_Type",
+                    "uid": "AD388833",
+                    "type": "2",
+                    "typeLibelle": "Adresse publi\u00e9e de circonscription",
+                    "poids": "21",
+                    "adresseDeRattachement": null,
+                    "intitule": "Mairie",
+                    "numeroRue": null,
+                    "nomRue": null,
+                    "complementAdresse": null,
+                    "codePostal": "63114",
+                    "ville": "Coudes"
+                },
+                {
+                    "@xsi:type": "AdresseTelephonique_Type",
+                    "uid": "AD388834",
+                    "type": "11",
+                    "typeLibelle": "T\u00e9l\u00e9phone",
+                    "poids": "21",
+                    "adresseDeRattachement": "AD388833",
+                    "valElec": "04 73 96 91 41"
+                },
+                {
+                    "@xsi:type": "AdresseTelephonique_Type",
+                    "uid": "AD388835",
+                    "type": "12",
+                    "typeLibelle": "T\u00e9l\u00e9copie",
+                    "poids": "21",
+                    "adresseDeRattachement": "AD388833",
+                    "valElec": "04 73 96 69 63"
+                },
+                {
+                    "@xsi:type": "AdresseMail_Type",
+                    "uid": "AD391618",
+                    "type": "15",
+                    "typeLibelle": "M\u00e8l",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "jpbacquet@assemblee-nationale.fr"
+                },
+                {
+                    "@xsi:type": "AdresseMail_Type",
+                    "uid": "AD648490",
+                    "type": "15",
+                    "typeLibelle": "M\u00e8l",
+                    "poids": null,
+                    "adresseDeRattachement": null,
+                    "valElec": "jpbaquet@wanadoo.fr"
+                }
+            ]
+        }
+    }
+}
