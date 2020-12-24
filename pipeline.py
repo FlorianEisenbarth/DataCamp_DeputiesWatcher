@@ -20,8 +20,7 @@ def get_train_data():
     df['position'] = (df['pour'] > df['contre']).astype(int)
 
     y = df['position']
-    X = df[["parti", "abstention", "pour", 
-            "contre", "vote_objet", "vote_demandeur", 
+    X = df[["parti","vote_objet", "vote_demandeur", 
             "vote_date", "vote_uid"]]
 
     # Encodage Parti
@@ -107,52 +106,97 @@ if __name__ == "__main__":
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.impute import SimpleImputer
     from sklearn.tree import DecisionTreeClassifier
+    from sklearn.feature_extraction.text import CountVectorizer
+    from sklearn.feature_extraction.text import TfidfTransformer
+    from sklearn.metrics import f1_score
+    from sklearn.metrics import confusion_matrix
+    import matplotlib.pyplot as plt
+    import seaborn as sns
     
+    
+
     X, y = get_train_data()
     X["target"] = y
     X = X.explode("demandeur_parti")
     y = X["target"]
-    X = X.drop("target",axis=1)
-    
-    X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.3)
+    X = X.drop("target", axis=1)
 
-    class MyTransformer(BaseEstimator, TransformerMixin):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
-        def __init__(self):
-           pass
+    types_votes = ["l'amendement","amendements","le sous-amendement", "l'article",
+                    "l'ensemble du projet de loi", "l'ensemble de la proposition de loi", 
+                    "la proposition de résolution", "l'ensemble de la proposition de résolution", 
+                    "les crédits", "la motion référendaire", "la motion de renvoi en commission",
+                    "la motion de rejet préalable", "la motion d'ajournement", "la motion de censure",
+                    "la déclaration", "la première partie du projet de loi de finances", "la demande de"]
 
-        def fit(self):
+
+    class Vote_objet_transformer(BaseEstimator, TransformerMixin):
+
+        def __init__(self,types_votes, ):
+            self.types_votes = types_votes
+
+        def fit(self, X, y):
             return self
 
         def transform(self, X, y=None):
             X_ = X.copy()
-            X_ = X.explode("demandeur_parti")
+
+            def del_vote_type(x):
+                l = x.split()
+                res = [words for words in l if words not in self.types_votes]
+                return " ".join(res)
+            X_["vote_objet"] = X_["vote_objet"].apply(del_vote_type)
             return X_
-            
-            
-            
-            
-    explode = MyTransformer()
-    
-   
+
+                
+
+    enc_vote_objet = Vote_objet_transformer(types_votes)
     
     preprocessing = make_pipeline(
-                SimpleImputer(strategy="constant", fill_value="unknow"),
-                OneHotEncoder()
+        SimpleImputer(strategy="constant", fill_value="unknow"),
+        OneHotEncoder()
             )
-    transform = make_column_transformer(
-        (preprocessing, ["parti","vote_demandeur","demandeur_parti"]),
-        ("drop",["vote_date","vote_uid","vote_objet"])
+    
+    #simple vectorizer encoding (All the challenge is here !!)
+    vote_objet_encoding = make_pipeline(
+        CountVectorizer(),
+        TfidfTransformer()
     )
     
+    transform = make_column_transformer(
+        (preprocessing, ["parti","vote_demandeur","demandeur_parti"]),
+        (vote_objet_encoding, "vote_objet"),
+        ("drop",["vote_date","vote_uid","vote_objet"])
+    )
+
     model = Pipeline([
-        #("explode_deamndeur_parti",explode),
+        ("clean_vote_objet",Vote_objet_transformer(types_votes)),
         ("Preprocessing",transform),
         ("estimator",DecisionTreeClassifier(min_samples_leaf=10))
     ])
-    
+
     model.fit(X_train,y_train)
-    print(model.score(X_test,y_test))
+    y_pred = model.predict(X_test)
+   
+
+# %%
+from sklearn.metrics import plot_roc_curve
+from sklearn.metrics import f1_score
+
+print("sklearn score :{} ".format(model.score(X_test,y_test)))
     
-    
+cm_df = pd.DataFrame(
+    confusion_matrix(y_test, y_pred),
+    columns=['N', 'P'],
+    index=['N', 'P']
+)
+sns.heatmap(cm_df, annot=True,
+            cmap='Oranges',)
+_ = plt.ylim(2, 0)
+print( "f1_score: {}".format(f1_score(y_test, y_pred)))
+
+plot_roc_curve(model,X_test,y_test)
+
+
 # %%
