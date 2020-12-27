@@ -337,6 +337,7 @@ class PolyHotEncoder(BaseEstimator, TransformerMixin):
         return X
 
 
+
 # %%
 
 
@@ -355,10 +356,10 @@ def get_estimator():
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
     vectorize_vote = make_column_transformer(
         (OneHotEncoder(), ["vote_objet_type"]),
-        # (MultiLabelBinarizer(), ["demandeur_parti"]),
-        # (encode_category, ["auteur_parti"]),
-        # (text_vectorizer, ["vote_objet_desc"]),
-        # ("drop", ["vote_objet"]),
+        #(OneHotEncoder(), ["demandeur_parti"]),
+        (encode_category, ["auteur_parti"]),
+        (text_vectorizer, "vote_objet_desc"),
+        ("drop", ["vote_objet"]),
     )
 
     model = Pipeline(
@@ -366,7 +367,7 @@ def get_estimator():
             ("find_group_vote_demandeur", find_group_vote_demandeur),
             ("decompose_vote_object", decompose_vote_object),
             ("find_party_actor", find_party_actor),
-            # ("vectorize_vote", vectorize_vote),
+            ("vectorize_vote", vectorize_vote),
             # Pour l'instant, on ne s'est occupé que du vote.
             # Il faut ajouter une transformation qui combine ces features numériques du votes avec
             # ce qu'on cherche à prédire, ie la position de chaque parti
@@ -382,7 +383,9 @@ def get_estimator():
 
 votes, results = get_train_data()
 model = get_estimator()
-t = model.fit_transform(votes, results)
+t = model.fit(votes, results)
+
+
 
 # %%
 
