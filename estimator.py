@@ -11,7 +11,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import make_column_transformer
 
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.tree import DecisionTreeClassifier
 
@@ -23,10 +23,10 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
         """
         pass
 
-    def fit(self, X, y):
+    def fit(self, X, y, **params):
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X, y=None, **params):
         X["demandeur_parti"] = X["vote_demandeur"].apply(
             self.find_parti_demandeur
         )
@@ -109,10 +109,10 @@ class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
         # Grouper : l'ensemble du projet du loi, l'ensemble de la proposition de loi
         # Grouper : la proposition de résolution, l'ensemble de la proposition de résolution
 
-    def fit(self, X, y):
+    def fit(self, X, y, **params):
         return self
 
-    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame, y=None, **params) -> pd.DataFrame:
         X["vote_objet_type"] = X["vote_objet"].apply(self.find_type_vote)
         X["vote_objet_desc"] = X["vote_objet"].apply(self.find_descriptif)
         X["vote_objet_auteur"] = X["vote_objet"].apply(self.find_auteur_loi)
@@ -253,10 +253,10 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         ).apply(self._normalize_txt)
         return actors
 
-    def fit(self, X, y):
+    def fit(self, X, y, **params):
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X, y=None, **params):
         X_ = X.copy()
         X_ = X_.explode("vote_objet_auteur")
 
@@ -329,12 +329,11 @@ def get_estimator():
     )
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
     vectorize_vote = make_column_transformer(
-        (
-            encode_category,
-            ["vote_objet_type", "demandeur_parti", "auteur_parti"],
-        ),
-        (text_vectorizer, "vote_objet_desc"),
-        ("drop", ["vote_date", "vote_objet"]),
+        (OneHotEncoder(), ["vote_objet_type"]),
+        (encode_category, ["demandeur_parti"]),
+        (encode_category, ["auteur_parti"]),
+        # (text_vectorizer, ["vote_objet_desc"]),
+        # ("drop", ["vote_objet"]),
     )
 
     model = Pipeline(
@@ -358,6 +357,8 @@ def get_estimator():
 
 votes, results = get_train_data()
 model = get_estimator()
-model.transform(votes)
+model.fit(votes, results)
+
+# %%
 
 # %%

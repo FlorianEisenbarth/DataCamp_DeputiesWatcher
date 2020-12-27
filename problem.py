@@ -22,6 +22,7 @@ def get_train_data():
             "vote_demandeur": ['Président du groupe "UDI et Indépendants"'],
         }
     )
+    votes = votes.append(votes)
     results = pd.DataFrame(
         {
             "vote_uid": [
