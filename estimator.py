@@ -311,6 +311,32 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         return X
 
 
+class PolyHotEncoder(BaseEstimator, TransformerMixin):
+    def __init__(
+        self,
+        target_column="demandeur_parti",
+        key_column="vote_uid",
+    ):
+        self.oh = OneHotEncoder()
+        self.target_column = target_column
+        self.key_column = key_column
+
+    def _explode_X(self, X):
+        X_ = X.copy()
+        return X_.explode(self.target_column)
+
+    def fit(self, X, y):
+        X_ = self._explode_X(X)
+        self.oh.fit(X_, y)
+        return self
+
+    def transform(self, X, y=None):
+        X_ = self._explode_X(X)
+        X_ = self.oh.transform(X_)
+        X = X.merge(X_, how="left", on=self.key_column)
+        return X
+
+
 # %%
 
 
@@ -318,20 +344,19 @@ def get_estimator():
     # TODO : check si c'est ok de faire ça.
     # Si c'est pas ok, ajouter un fichier actors.csv au dossier de estimator.py
     actors = get_actor_party_data()  # Additional data about deputies
+
     find_group_vote_demandeur = FindGroupVoteDemandeurTransformer()
     decompose_vote_object = DecomposeVoteObjetTransformer()
-
     find_party_actor = FindPartyActorTransformer(actors)
 
     encode_category = make_pipeline(
-        SimpleImputer(strategy="constant", fill_value="unknow"),
-        MultiLabelBinarizer(),
+        SimpleImputer(strategy="constant", fill_value=["unknown"])
     )
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
     vectorize_vote = make_column_transformer(
         (OneHotEncoder(), ["vote_objet_type"]),
-        (encode_category, ["demandeur_parti"]),
-        (encode_category, ["auteur_parti"]),
+        # (MultiLabelBinarizer(), ["demandeur_parti"]),
+        # (encode_category, ["auteur_parti"]),
         # (text_vectorizer, ["vote_objet_desc"]),
         # ("drop", ["vote_objet"]),
     )
@@ -341,7 +366,7 @@ def get_estimator():
             ("find_group_vote_demandeur", find_group_vote_demandeur),
             ("decompose_vote_object", decompose_vote_object),
             ("find_party_actor", find_party_actor),
-            ("vectorize_vote", vectorize_vote),
+            # ("vectorize_vote", vectorize_vote),
             # Pour l'instant, on ne s'est occupé que du vote.
             # Il faut ajouter une transformation qui combine ces features numériques du votes avec
             # ce qu'on cherche à prédire, ie la position de chaque parti
@@ -357,7 +382,7 @@ def get_estimator():
 
 votes, results = get_train_data()
 model = get_estimator()
-model.fit(votes, results)
+t = model.fit_transform(votes, results)
 
 # %%
 
