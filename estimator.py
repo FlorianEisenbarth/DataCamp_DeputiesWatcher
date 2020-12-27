@@ -1,14 +1,17 @@
+# %%
+
 from problem import get_train_data, get_actor_party_data
 
 import re, unidecode
 import pandas as pd
+import numpy as np
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import make_column_transformer
 
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.tree import DecisionTreeClassifier
 
@@ -30,7 +33,7 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
         return X
 
     def find_parti_demandeur(self, txt: str) -> list:
-        def clean_groupe_name(self, txt: str) -> str:
+        def clean_groupe_name(txt: str) -> str:
             # TODO: rendre obsolète ce genre de remplacement
             # A mettre dans problem.py !
             txt = txt.strip()
@@ -219,9 +222,9 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         Args:
             actors (pd.DataFrame): df with external info about deputies.
         """
-        self.actors = _create_slug_actors(actors.copy())
+        self.actors = self._create_slug_actors(actors.copy())
 
-    def normalize_txt(self, txt: str) -> str:
+    def _normalize_txt(self, txt: str) -> str:
         """Remove accents and lowercase text."""
         if type(txt) == str:
             return unidecode.unidecode(txt).lower()
@@ -236,10 +239,10 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         actors["slug_1"] = actors.apply(
             lambda x: x["membre_civ"] + " " + x["membre_nom"].replace("'", ""),
             axis=1,
-        ).apply(normalize_txt)
+        ).apply(self._normalize_txt)
         actors["slug_2"] = actors.apply(
             lambda x: x["membre_civ"] + " " + x["membre_fullname"], axis=1
-        ).apply(normalize_txt)
+        ).apply(self._normalize_txt)
         actors["slug_3"] = actors.apply(
             lambda x: x["membre_civ"]
             + " "
@@ -247,7 +250,7 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
             + " "
             + x["membre_nom"],
             axis=1,
-        ).apply(self.normalize_txt)
+        ).apply(self._normalize_txt)
         return actors
 
     def fit(self, X, y):
@@ -260,7 +263,7 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         # Normalize vote_objet_auteur on specific autor names
         def replace_batch_auteur(list_of_s: list, replace: str):
             for s in list_of_s:
-                X["vote_objet_auteur"] = X["vote_objet_auteur"].apply(
+                X_["vote_objet_auteur"] = X_["vote_objet_auteur"].apply(
                     lambda x: x.replace(s, replace)
                 )
 
@@ -270,7 +273,7 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         )
         replace_batch_auteur(["Mme x", "M. XXX"], "Anonyme")
         # Add a slug column by removing accents and setting it lowercase
-        X_["slug"] = X_["vote_objet_auteur"].apply(self.normalize_txt)
+        X_["slug"] = X_["vote_objet_auteur"].apply(self._normalize_txt)
         # Try to merge with self.actors on several version of the lusgs
         va_merge_1 = X_.merge(
             self.actors, how="inner", left_on="slug", right_on="slug_1"
@@ -295,29 +298,34 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         va_merge.rename({"membre_parti": "auteur_parti"}, axis=1, inplace=True)
         # Reverse the explosion made over X, using a groupby.
         X_ = (
-            X_.groupby("vote_id")
+            va_merge.groupby("vote_uid")
             .agg({"auteur_parti": lambda x: x.tolist()})
             .reset_index()
         )
         # Drop non-relevant column
-        X_ = X_[["vote_id", "auteur_parti"]]
+        X_ = X_[["vote_uid", "auteur_parti"]]
+        # print(X_.head(5))
+        # print(X.head(5))
         # Join with the original dataframe
-        X["auteur_parti"] = X.join(X_, how="left", on="vote_id")
+        X = X.merge(X_, how="left", on="vote_uid")
         return X
+
+
+# %%
 
 
 def get_estimator():
     # TODO : check si c'est ok de faire ça.
     # Si c'est pas ok, ajouter un fichier actors.csv au dossier de estimator.py
     actors = get_actor_party_data()  # Additional data about deputies
-
     find_group_vote_demandeur = FindGroupVoteDemandeurTransformer()
     decompose_vote_object = DecomposeVoteObjetTransformer()
+
     find_party_actor = FindPartyActorTransformer(actors)
 
     encode_category = make_pipeline(
         SimpleImputer(strategy="constant", fill_value="unknow"),
-        OneHotEncoder(),  # Vérifier : est-il ok quand on lui envoie une liste ? Comment réagit-il ? Utiliser le transformer d'Armand
+        MultiLabelBinarizer(),
     )
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
     vectorize_vote = make_column_transformer(
@@ -338,11 +346,18 @@ def get_estimator():
             # Pour l'instant, on ne s'est occupé que du vote.
             # Il faut ajouter une transformation qui combine ces features numériques du votes avec
             # ce qu'on cherche à prédire, ie la position de chaque parti
-            ("estimator", DecisionTreeClassifier(min_samples_leaf=10)),
+            # ("estimator", DecisionTreeClassifier(min_samples_leaf=10)),
             # Peut-être ici y a-t-il encore une transformation à faire pour retourner les données
             # dans la format correct, ie similaire à résultats
         ]
     )
+    return model
 
-    estimator = None
-    return estimator
+
+# %%
+
+votes, results = get_train_data()
+model = get_estimator()
+model.transform(votes)
+
+# %%

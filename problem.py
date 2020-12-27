@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 import os
+import unidecode
 
 
 def get_train_data():
@@ -12,11 +13,46 @@ def get_train_data():
         resultats: pd.DataFrame Results of the vote for each party. This is what needs to be predicted.
     """
     # TODO: Train test split en amont !
-    votes = pd.DataFrame(columns=["vote_uid", "features"])
-    resultats = pd.DataFrame(
-        columns=["vote_uid", "parti", "pour", "contre", "abstention"]
+    votes = pd.DataFrame(
+        {
+            "vote_uid": ["VTANR5L15V2827"],
+            "vote_objet": [
+                "l'amendement n° 2166 rectifié du Gouvernement et les amendements identiques suivants à l'article premier du projet de loi relatif à la bioéthique (deuxième lecture)."
+            ],
+            "vote_demandeur": ['Président du groupe "UDI et Indépendants"'],
+        }
     )
-    return votes, resultats
+    results = pd.DataFrame(
+        {
+            "vote_uid": [
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+                "VTANR5L15V2827",
+            ],
+            "parti": [
+                "La France Insoumise",
+                "La République en Marche",
+                "Les Républicains",
+                "Mouvement Démocrate",
+                "Indépendant",
+                "Parti communiste français",
+                "Parti socialiste",
+                "Rassemblement national",
+                "Union des démocrates, radicaux et libéraux",
+            ],
+            "abstention": [0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "contre": [2.0, 11.0, 2.0, 2.0, 0.0, 0.0, 2.0, 0.0, 0.0],
+            "pour": [0.0, 41.0, 13.0, 6.0, 1.0, 2.0, 0.0, 1.0, 3.0],
+        }
+    )
+
+    return votes, results
 
 
 def get_test_data():
@@ -41,10 +77,15 @@ def get_actor_party_data():
         actors.to_csv("data/acteurs.csv")
 
     actors_info = _read_info_actors()
-
-    actors_merge = pd.merge(
-        actors, actors_info, on=["membre_prenom", "membre_nom"]
+    actors["membre_fullname"] = actors.apply(
+        lambda x: x["membre_prenom"] + " " + x["membre_nom"], axis=1
     )
+    actors["slug"] = actors["membre_fullname"].apply(_normalize_txt)
+    actors.drop(["membre_fullname"], axis=1, inplace=True)
+    actors_info.drop(["membre_prenom", "membre_nom"], axis=1, inplace=True)
+    actors_info["slug"] = actors_info["membre_fullname"].apply(_normalize_txt)
+    actors_merge = pd.merge(actors, actors_info, on="slug")
+
     return actors_merge
 
 
@@ -53,6 +94,7 @@ def _read_info_actors():
     df = pd.read_csv(filename, sep=";")
     old_cols = [
         "id",
+        "nom",
         "prenom",
         "nom_de_famille",
         "date_naissance",
@@ -61,6 +103,7 @@ def _read_info_actors():
     ]
     new_cols = [
         "custom_id",
+        "membre_fullname",
         "membre_prenom",
         "membre_nom",
         "membre_birthDate",
@@ -97,10 +140,18 @@ def _read_all_actors():
     all_acteur_filenames = os.listdir("data/acteur")
     output = pd.DataFrame()
     for filename in all_acteur_filenames:
-        acteur = read_actor("data/acteur/" + filename)
+        acteur = _read_actor("data/acteur/" + filename)
         # Update
         if not output.empty:
             output = output.append(acteur)
         else:
             output = acteur
     return output
+
+
+def _normalize_txt(txt: str) -> str:
+    """Remove accents and lowercase text."""
+    if type(txt) == str:
+        return unidecode.unidecode(txt).lower()
+    else:
+        return txt
