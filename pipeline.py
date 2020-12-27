@@ -99,86 +99,85 @@ def get_train_data():
 # %%
 
 
-if __name__ == "__main__":
-    from sklearn.model_selection import train_test_split
-    from sklearn.pipeline import Pipeline, make_pipeline
-    from sklearn.compose import make_column_transformer
-    from sklearn.preprocessing import OneHotEncoder
-    from sklearn.impute import SimpleImputer
-    from sklearn.tree import DecisionTreeClassifier
-    from sklearn.feature_extraction.text import CountVectorizer
-    from sklearn.feature_extraction.text import TfidfTransformer
-    from sklearn.metrics import f1_score
-    from sklearn.metrics import confusion_matrix
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    
-    
-
-    X, y = get_train_data()
-    X["target"] = y
-    X = X.explode("demandeur_parti")
-    y = X["target"]
-    X = X.drop("target", axis=1)
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-
-    types_votes = ["l'amendement","amendements","le sous-amendement", "l'article",
-                    "l'ensemble du projet de loi", "l'ensemble de la proposition de loi", 
-                    "la proposition de résolution", "l'ensemble de la proposition de résolution", 
-                    "les crédits", "la motion référendaire", "la motion de renvoi en commission",
-                    "la motion de rejet préalable", "la motion d'ajournement", "la motion de censure",
-                    "la déclaration", "la première partie du projet de loi de finances", "la demande de"]
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.compose import make_column_transformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.metrics import f1_score
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-    class Vote_objet_transformer(BaseEstimator, TransformerMixin):
 
-        def __init__(self,types_votes, ):
-            self.types_votes = types_votes
+X, y = get_train_data()
+X["target"] = y
+X = X.explode("demandeur_parti")
+y = X["target"]
+X = X.drop("target", axis=1)
 
-        def fit(self, X, y):
-            return self
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
-        def transform(self, X, y=None):
-            X_ = X.copy()
+types_votes = ["l'amendement","amendements","le sous-amendement", "l'article",
+                "l'ensemble du projet de loi", "l'ensemble de la proposition de loi", 
+                "la proposition de résolution", "l'ensemble de la proposition de résolution", 
+                "les crédits", "la motion référendaire", "la motion de renvoi en commission",
+                "la motion de rejet préalable", "la motion d'ajournement", "la motion de censure",
+                "la déclaration", "la première partie du projet de loi de finances", "la demande de"]
 
-            def del_vote_type(x):
-                l = x.split()
-                res = [words for words in l if words not in self.types_votes]
-                return " ".join(res)
-            X_["vote_objet"] = X_["vote_objet"].apply(del_vote_type)
-            return X_
 
-                
+class Vote_objet_transformer(BaseEstimator, TransformerMixin):
 
-    enc_vote_objet = Vote_objet_transformer(types_votes)
-    
-    preprocessing = make_pipeline(
-        SimpleImputer(strategy="constant", fill_value="unknow"),
-        OneHotEncoder()
-            )
-    
-    #simple vectorizer encoding (All the challenge is here !!)
-    vote_objet_encoding = make_pipeline(
-        CountVectorizer(),
-        TfidfTransformer()
-    )
-    
-    transform = make_column_transformer(
-        (preprocessing, ["parti","vote_demandeur","demandeur_parti"]),
-        (vote_objet_encoding, "vote_objet"),
-        ("drop",["vote_date","vote_uid","vote_objet"])
-    )
+    def __init__(self,types_votes, ):
+        self.types_votes = types_votes
 
-    model = Pipeline([
-        ("clean_vote_objet",Vote_objet_transformer(types_votes)),
-        ("Preprocessing",transform),
-        ("estimator",DecisionTreeClassifier(min_samples_leaf=10))
-    ])
+    def fit(self, X, y):
+        return self
 
-    model.fit(X_train,y_train)
-    y_pred = model.predict(X_test)
-   
+    def transform(self, X, y=None):
+        X_ = X.copy()
+
+        def del_vote_type(x):
+            l = x.split()
+            res = [words for words in l if words not in self.types_votes]
+            return " ".join(res)
+        X_["vote_objet"] = X_["vote_objet"].apply(del_vote_type)
+        return X_
+
+            
+
+enc_vote_objet = Vote_objet_transformer(types_votes)
+
+preprocessing = make_pipeline(
+    SimpleImputer(strategy="constant", fill_value="unknow"),
+    OneHotEncoder()
+        )
+
+#simple vectorizer encoding (All the challenge is here !!)
+vote_objet_encoding = make_pipeline(
+    CountVectorizer(),
+    TfidfTransformer()
+)
+
+transform = make_column_transformer(
+    (preprocessing, ["parti","vote_demandeur","demandeur_parti"]),
+    (vote_objet_encoding, "vote_objet"),
+    ("drop",["vote_date","vote_uid","vote_objet"])
+)
+
+model = Pipeline([
+    ("clean_vote_objet",Vote_objet_transformer(types_votes)),
+    ("Preprocessing",transform),
+    ("estimator",DecisionTreeClassifier(min_samples_leaf=10))
+])
+
+model.fit(X_train,y_train)
+y_pred = model.predict(X_test)
+
 
 # %%
 from sklearn.metrics import plot_roc_curve
