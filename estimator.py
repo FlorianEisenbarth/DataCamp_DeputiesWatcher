@@ -327,7 +327,7 @@ class PolyHotEncoder(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y):
         X_ = self._explode_X(X)
-        self.oh.fit(X_, y)
+        self.oh.fit(X_, np.zeros(X_.shape[0]))
         return self
 
     def transform(self, X, y=None):
