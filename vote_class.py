@@ -4,6 +4,7 @@ import pandas as pd
 import pickle as pkl
 
 
+
 votes_names = os.listdir('votes')
 votes_names = [os.path.splitext(x)[0] for x in votes_names]
 votes_names.sort(key=lambda name: int(name[10:]))
@@ -24,6 +25,7 @@ class Vote:
         self.id = scrutin_id
         self.libelle = scrutin['libelle']
         self.nombre_votants = scrutin['nombre_votants']
+        self.sort = scrutin['sort']
     
     def set_demandeur(self):
         scrutin = votes_data.loc[self.id]
@@ -40,7 +42,6 @@ class Vote:
             self.demandeur = None
 
     def set_voters(self):
-
         ''' For a given scrutin, returns the list of actors who voted
             'for', the list of actors who voted 'against', the list
             of those who abstained, and the list of non-voters.
@@ -97,15 +98,24 @@ class Vote:
                                 if count[0] != 0
                             }
 
-dpt_data = pd.read_csv('dpt_data/dpt_data.csv', sep=';').set_index('identifiant')
+if __name__ == "__main__":
 
-votes = []
-for scrutin_id in votes_names:
-    vote = Vote(scrutin_id)
-    vote.set_demandeur()
-    vote.set_voters()
-    vote.compute_vote_pour_ratios_per_party(dpt_data=dpt_data)
-    votes.append(vote)
+    dpt_data = pd.read_csv('dpt_data/dpt_data.csv', sep=';').set_index('identifiant')
 
-with open('votes_data/vote_objects.pkl', 'wb') as f:
-    pkl.dump(votes, f)
+    # -------- create a vote object for every vote in votes folder ----------
+
+    print('creating vote objetcs...')
+    votes = []
+    for scrutin_id in votes_names:
+        vote = Vote(scrutin_id)
+        vote.set_demandeur()
+        vote.set_voters()
+        vote.compute_vote_pour_ratios_per_party(dpt_data=dpt_data)
+        votes.append(vote)
+    print('vote objects created.')
+    print()
+
+    # -------- save votes in a pickle file ------------
+
+    with open('votes_data/vote_objects.pkl', 'wb') as f:
+        pkl.dump(votes, f)

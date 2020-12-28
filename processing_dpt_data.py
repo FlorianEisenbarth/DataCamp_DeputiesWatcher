@@ -27,8 +27,7 @@ dep_infos = dep_infos[
      'semaines_presence',
      'commission_presences',
      'amendements_signes',
-     'amendements_adoptes',
-     ]
+     'amendements_adoptes']
 ]
 
 list_dep['Prenom'] = list_dep['Prenom'].apply(str.lower)

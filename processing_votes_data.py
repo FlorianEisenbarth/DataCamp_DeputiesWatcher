@@ -16,7 +16,7 @@ for f_name in votes_names[:max_votes]:
         content = json.load(f)
     list_scrutin.append(content)
 
-# ----------- extract interesting facts, fill a dataFrame -------------
+# ----------- extract interesting features, fill a dataFrame -------------
 
 vote_data = pd.DataFrame(columns=['id',
                                   'libelle',
