@@ -66,7 +66,7 @@ class Vote:
         y = {}
         for party in self.vote_counts.index:
             major_position = vote_columns[np.argmax(self.vote_counts.loc[party])]
-            y[party] = major_position
+            y[party] = 1. * (major_position == 'pours')
 
         return X, y
 
@@ -94,3 +94,7 @@ def get_train_data(path='.'):
 
 def get_test_data(path='.'):
     return _read_data(path=path, train_or_test='test')
+
+
+X, y = get_test_data()
+print(y)
