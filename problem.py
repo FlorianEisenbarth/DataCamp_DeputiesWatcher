@@ -94,7 +94,3 @@ def get_train_data(path='.'):
 
 def get_test_data(path='.'):
     return _read_data(path=path, train_or_test='test')
-
-
-X, y = get_test_data()
-print(y)
