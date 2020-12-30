@@ -11,7 +11,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import make_column_transformer
 
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.tree import DecisionTreeClassifier
 
@@ -311,33 +311,6 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         return X
 
 
-class PolyHotEncoder(BaseEstimator, TransformerMixin):
-    def __init__(
-        self,
-        target_column="demandeur_parti",
-        key_column="vote_uid",
-    ):
-        self.oh = OneHotEncoder()
-        self.target_column = target_column
-        self.key_column = key_column
-
-    def _explode_X(self, X):
-        X_ = X.copy()
-        return X_.explode(self.target_column)
-
-    def fit(self, X, y):
-        X_ = self._explode_X(X)
-        self.oh.fit(X_, np.zeros(X_.shape[0]))
-        return self
-
-    def transform(self, X, y=None):
-        X_ = self._explode_X(X)
-        X_ = self.oh.transform(X_)
-        X = X.merge(X_, how="left", on=self.key_column)
-        return X
-
-
-
 # %%
 
 
@@ -354,10 +327,17 @@ def get_estimator():
         SimpleImputer(strategy="constant", fill_value=["unknown"])
     )
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
+    idty = lambda x: x
     vectorize_vote = make_column_transformer(
         (OneHotEncoder(), ["vote_objet_type"]),
-        #(OneHotEncoder(), ["demandeur_parti"]),
-        (encode_category, ["auteur_parti"]),
+        (
+            CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
+            "demandeur_parti",
+        ),
+        (
+            CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
+            "auteur_parti",
+        ),
         (text_vectorizer, "vote_objet_desc"),
         ("drop", ["vote_objet"]),
     )
@@ -383,8 +363,8 @@ def get_estimator():
 
 votes, results = get_train_data()
 model = get_estimator()
-t = model.fit(votes, results)
-
+t = model.fit_transform(votes, results)
+print(t)
 
 
 # %%
