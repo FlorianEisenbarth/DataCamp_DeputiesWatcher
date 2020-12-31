@@ -7,6 +7,15 @@ import numpy as np
 
 
 SPLIT_TRAIN_TEST = 0.8
+RELEVANT_VOTE_METADATA = [
+    'id', #str
+    'code_type_vote', #str
+    'libelle_type_vote', #str
+    'demandeur', #str
+    'libelle', #str
+    'nb_votants', #int
+    'date' #str
+]
 
 parties_complete_names = {
     'GDR': 'Gauche Démocrate et Républicaine',
@@ -33,7 +42,6 @@ def get_releveant_informations_from_json_vote(file_name):
         'id': scrutin['uid'],
         'code_type_vote': scrutin['typeVote']['codeTypeVote'],
         'libelle_type_vote': scrutin['typeVote']['libelleTypeVote'],
-        'sort': scrutin['sort']['code'],
         'demandeur': str(scrutin['demandeur']['texte']).replace(',', '').replace('\r', ' '),
         'libelle': str(scrutin['titre']).replace(',', '').replace('\r', ' '),
         'nb_votants': scrutin['syntheseVote']['nombreVotants'],

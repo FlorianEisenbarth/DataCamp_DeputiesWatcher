@@ -17,7 +17,6 @@ class Vote:
     id: str
     code_type_vote: str
     libelle_type_vote: str
-    sort: str
     demandeur: str
     libelle: str
     nb_votants: int
@@ -38,7 +37,6 @@ class Vote:
         vote = cls(id=id,
                    code_type_vote=vote_metadata['code_type_vote'],
                    libelle_type_vote=vote_metadata['libelle_type_vote'],
-                   sort=vote_metadata['sort'],
                    demandeur=vote_metadata['demandeur'],
                    libelle=vote_metadata['libelle'],
                    nb_votants=vote_metadata['nb_votants'],
@@ -55,7 +53,6 @@ class Vote:
                                     for party in self.vote_counts.index}
         X = {'code_type_vote': self.code_type_vote,
              'libelle_type_vote': self.libelle_type_vote,
-             'sort': self.sort,
              'demandeur': self.demandeur,
              'libelle': self.libelle,
              'nb_votants': self.nb_votants,
