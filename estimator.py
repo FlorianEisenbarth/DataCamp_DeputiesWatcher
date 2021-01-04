@@ -314,12 +314,28 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         X['auteur_parti'] = X['auteur_parti'].apply(lambda x: np.str_(x))
         return X
 
+class DenseTransformer(TransformerMixin):
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        return X.todense()
+
 
 # %%
 
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.preprocessing import FunctionTransformer, Normalizer
+from sklearn.linear_model import LogisticRegression
+from keras import Sequential
+from keras.layers import Dense, Dropout
+from keras.optimizers import Adam
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.utils import class_weight
+
 
 def get_estimator():
-    # TODO : check si c'est ok de faire ça.
+    # TODO : check mçi c'est ok de faire ça.
     # Si c'est pas ok, ajouter un fichier actors.csv au dossier de estimator.py
     actors = get_actor_party_data()  # Additional data about deputies
 
@@ -332,6 +348,12 @@ def get_estimator():
     )
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
     idty = lambda x: x
+
+    def encode_party_presence(x):
+        y = x.iloc[:,0].apply(pd.Series)
+        #y[y> 0] = 1
+        return y
+
     vectorize_vote = make_column_transformer(
         (OneHotEncoder(), ["libelle_type"]),
         (
@@ -342,9 +364,20 @@ def get_estimator():
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
             "auteur_parti",
         ),
+        (FunctionTransformer(func=encode_party_presence), ["presence_per_party"]),
         (text_vectorizer, "libelle_desc"),
-        ("drop", ["libelle"]),
     )
+
+    #forest = LogisticRegression()
+    #multi_target_forest = MultiOutputClassifier(forest, n_jobs=-1)
+
+    def create_nn_model(): 
+        nn = Sequential()
+        nn.add(Dense(64, activation='relu', input_shape=(1161,)))
+        nn.add(Dropout(0.2))
+        nn.add(Dense(10, activation= "sigmoid"))
+        nn.compile(optimizer=Adam(learning_rate=1e-4), loss='binary_crossentropy', metrics=["accuracy"])
+        return nn
 
     model = Pipeline(
         [
@@ -352,7 +385,9 @@ def get_estimator():
             ("decompose_vote_object", decompose_vote_object),
             ("find_party_actor", find_party_actor),
             ("vectorize_vote", vectorize_vote),
-            # Ajouter modèle de multilabel
+            ("densify", DenseTransformer()),
+            ("normalize", Normalizer()),
+            ("nn", KerasClassifier(create_nn_model))
         ]
     )
     return model
@@ -363,10 +398,30 @@ def get_estimator():
 model = get_estimator()
 
 # %%
-X_train, y_train = get_test_data()
+#X_train, y_train = get_train_data()
+#X_test, y_test = get_test_data()
 
 # %%
-t = model.fit_transform(X_train, y_train)
-print(t)
+from sklearn.utils import class_weight
+
+weights = np.mean(np.sum(y_train, axis=0))/np.sum(y_train, axis=0)
+dict_weights = dict(enumerate(weights))
+
+# %%
+
+model.fit(X_train, y_train.to_numpy(), 
+    nn__batch_size=4096, 
+    nn__epochs=500, 
+    nn__class_weight=dict_weights,
+    nn__verbose=0)
+model.score(X_test, y_test.to_numpy())
+# %%
+from sklearn.metrics import multilabel_confusion_matrix
+
+y_pred = 1*(model.predict_proba(X_test) > 0.5)
+confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
+for i in range(10):
+    print("Confusion matrix for", y_test.columns[i])
+    print(confusion_matrix[i])
 
 # %%
