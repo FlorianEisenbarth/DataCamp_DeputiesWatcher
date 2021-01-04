@@ -325,7 +325,7 @@ class DenseTransformer(TransformerMixin):
 # %%
 
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, Normalizer
 from sklearn.linear_model import LogisticRegression
 from keras import Sequential
 from keras.layers import Dense, Dropout
@@ -386,6 +386,7 @@ def get_estimator():
             ("find_party_actor", find_party_actor),
             ("vectorize_vote", vectorize_vote),
             ("densify", DenseTransformer()),
+            ("normalize", Normalizer()),
             ("nn", KerasClassifier(create_nn_model))
         ]
     )
@@ -404,14 +405,23 @@ model = get_estimator()
 from sklearn.utils import class_weight
 
 weights = np.mean(np.sum(y_train, axis=0))/np.sum(y_train, axis=0)
-weights = dict(enumerate(weights))
+dict_weights = dict(enumerate(weights))
 
 # %%
 
 model.fit(X_train, y_train.to_numpy(), 
     nn__batch_size=4096, 
     nn__epochs=500, 
-    nn__class_weight=weights,
+    nn__class_weight=dict_weights,
     nn__verbose=0)
 model.score(X_test, y_test.to_numpy())
+# %%
+from sklearn.metrics import multilabel_confusion_matrix
+
+y_pred = 1*(model.predict_proba(X_test) > 0.5)
+confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
+for i in range(10):
+    print("Confusion matrix for", y_test.columns[i])
+    print(confusion_matrix[i])
+
 # %%
