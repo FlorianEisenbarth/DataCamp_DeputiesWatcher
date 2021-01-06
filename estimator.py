@@ -1,6 +1,6 @@
 # %%
 
-from problem import get_train_data, get_actor_party_data
+from problem import get_train_data, get_test_data, get_actor_party_data
 
 import re, unidecode
 import pandas as pd
@@ -27,9 +27,11 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None, **params):
-        X["demandeur_parti"] = X["vote_demandeur"].apply(
+        X["demandeur_parti"] = X["demandeur"].apply(
             self.find_parti_demandeur
         )
+        X['demandeur_parti'].fillna('[UNK]', inplace=True)
+        X['demandeur_parti'] = X['demandeur_parti'].apply(lambda x: np.str_(x))
         return X
 
     def find_parti_demandeur(self, txt: str) -> list:
@@ -78,11 +80,11 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
 
 class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
-        """In column vote_objet, there are several info.
+        """In column libelle, there are several info.
         We use this tranformer to extract relevant ones :
-        - vote_objet_type: the string with type of vote (look at self.types_votes)
-        - vote_objet_desc: the string with a description of the object vote (ex: loi bioéthique)
-        - vote_objet_auteur: the list of actors mentioned (ex: M. Melenchon)
+        - libelle_type: the string with type of vote (look at self.types_votes)
+        - libelle_desc: the string with a description of the object vote (ex: loi bioéthique)
+        - libelle_auteur: the list of actors mentioned (ex: M. Melenchon)
         """
         # Liste établie "à la main"
         self.types_votes = [
@@ -113,15 +115,15 @@ class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame, y=None, **params) -> pd.DataFrame:
-        X["vote_objet_type"] = X["vote_objet"].apply(self.find_type_vote)
-        X["vote_objet_desc"] = X["vote_objet"].apply(self.find_descriptif)
-        X["vote_objet_auteur"] = X["vote_objet"].apply(self.find_auteur_loi)
+        X["libelle_type"] = X["libelle"].apply(self.find_type_vote)
+        X["libelle_desc"] = X["libelle"].apply(self.find_descriptif)
+        X["libelle_auteur"] = X["libelle"].apply(self.find_auteur_loi)
         return X
 
     def find_type_vote(self, txt: str) -> str:
         self.weird_type_votes_ = []
         if type(txt) == str:
-            type_vote = "?"
+            type_vote = "[UNK]"
             # Fix common typos
             txt = txt.replace("le sous-amendment", "le sous-amendement")
             txt = txt.replace("declaration", "déclaration")
@@ -134,10 +136,10 @@ class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
                 if txt.startswith(t):
                     type_vote = t
                     break
-            if type_vote == "?":
+            if type_vote == "[UNK]":
                 self.weird_type_votes_.append(txt)
         else:
-            type_vote = "?"
+            type_vote = "[UNK]"
         return type_vote
 
     def find_descriptif(self, txt: str) -> str:
@@ -161,15 +163,15 @@ class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
                     descriptif = descriptif[0]
                 else:
                     self.weird_descriptifs_.append(txt)
-                    descriptif = "?"
+                    descriptif = "[UNK]"
         else:
             print(txt)
-            descriptif = "?"
+            descriptif = "[UNK]"
         return descriptif
 
     def find_auteur_loi(self, txt: str) -> list:
         """
-        Returns a list of slugs of the auteurs found inside vote_objet.
+        Returns a list of slugs of the auteurs found inside libelle.
         """
         self.weird_auteurs_loi_ = []
 
@@ -215,7 +217,7 @@ class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
 
 class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, actors: pd.DataFrame):
-        """The column vote_objet_auteur is a list of peoples' names with irregularities.
+        """The column libelle_auteur is a list of peoples' names with irregularities.
         This transformer find the party of these people, as they are stored in the
         dataframe actors, accounting for those irregularities.
 
@@ -258,12 +260,12 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X, y=None, **params):
         X_ = X.copy()
-        X_ = X_.explode("vote_objet_auteur")
+        X_ = X_.explode("libelle_auteur")
 
-        # Normalize vote_objet_auteur on specific autor names
+        # Normalize libelle_auteur on specific autor names
         def replace_batch_auteur(list_of_s: list, replace: str):
             for s in list_of_s:
-                X_["vote_objet_auteur"] = X_["vote_objet_auteur"].apply(
+                X_["libelle_auteur"] = X_["libelle_auteur"].apply(
                     lambda x: x.replace(s, replace)
                 )
 
@@ -273,7 +275,7 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         )
         replace_batch_auteur(["Mme x", "M. XXX"], "Anonyme")
         # Add a slug column by removing accents and setting it lowercase
-        X_["slug"] = X_["vote_objet_auteur"].apply(self._normalize_txt)
+        X_["slug"] = X_["libelle_auteur"].apply(self._normalize_txt)
         # Try to merge with self.actors on several version of the lusgs
         va_merge_1 = X_.merge(
             self.actors, how="inner", left_on="slug", right_on="slug_1"
@@ -308,14 +310,32 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         # print(X.head(5))
         # Join with the original dataframe
         X = X.merge(X_, how="left", on="vote_uid")
+        X['auteur_parti'].fillna("[NAN]", inplace=True)
+        X['auteur_parti'] = X['auteur_parti'].apply(lambda x: np.str_(x))
         return X
+
+class DenseTransformer(TransformerMixin):
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        return X.todense()
 
 
 # %%
 
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.preprocessing import FunctionTransformer, Normalizer
+from sklearn.linear_model import LogisticRegression
+from keras import Sequential
+from keras.layers import Dense, Dropout
+from keras.optimizers import Adam
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.utils import class_weight
+
 
 def get_estimator():
-    # TODO : check si c'est ok de faire ça.
+    # TODO : check mçi c'est ok de faire ça.
     # Si c'est pas ok, ajouter un fichier actors.csv au dossier de estimator.py
     actors = get_actor_party_data()  # Additional data about deputies
 
@@ -328,8 +348,14 @@ def get_estimator():
     )
     text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
     idty = lambda x: x
+
+    def encode_party_presence(x):
+        y = x.iloc[:,0].apply(pd.Series)
+        #y[y> 0] = 1
+        return y
+
     vectorize_vote = make_column_transformer(
-        (OneHotEncoder(), ["vote_objet_type"]),
+        (OneHotEncoder(), ["libelle_type"]),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
             "demandeur_parti",
@@ -338,9 +364,20 @@ def get_estimator():
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
             "auteur_parti",
         ),
-        (text_vectorizer, "vote_objet_desc"),
-        ("drop", ["vote_objet"]),
+        (FunctionTransformer(func=encode_party_presence), ["presence_per_party"]),
+        (text_vectorizer, "libelle_desc"),
     )
+
+    #forest = LogisticRegression()
+    #multi_target_forest = MultiOutputClassifier(forest, n_jobs=-1)
+
+    def create_nn_model(): 
+        nn = Sequential()
+        nn.add(Dense(64, activation='relu', input_shape=(1161,)))
+        nn.add(Dropout(0.2))
+        nn.add(Dense(10, activation= "sigmoid"))
+        nn.compile(optimizer=Adam(learning_rate=1e-4), loss='binary_crossentropy', metrics=["accuracy"])
+        return nn
 
     model = Pipeline(
         [
@@ -348,25 +385,43 @@ def get_estimator():
             ("decompose_vote_object", decompose_vote_object),
             ("find_party_actor", find_party_actor),
             ("vectorize_vote", vectorize_vote),
-            # Pour l'instant, on ne s'est occupé que du vote.
-            # Il faut ajouter une transformation qui combine ces features numériques du votes avec
-            # ce qu'on cherche à prédire, ie la position de chaque parti
-            # ("estimator", DecisionTreeClassifier(min_samples_leaf=10)),
-            # Peut-être ici y a-t-il encore une transformation à faire pour retourner les données
-            # dans la format correct, ie similaire à résultats
+            ("densify", DenseTransformer()),
+            ("normalize", Normalizer()),
+            ("nn", KerasClassifier(create_nn_model))
         ]
     )
     return model
 
 
-# %%
 
-votes, results = get_train_data()
+# %%
 model = get_estimator()
-t = model.fit_transform(votes, results)
-print(t)
-
 
 # %%
+#X_train, y_train = get_train_data()
+#X_test, y_test = get_test_data()
+
+# %%
+from sklearn.utils import class_weight
+
+weights = np.mean(np.sum(y_train, axis=0))/np.sum(y_train, axis=0)
+dict_weights = dict(enumerate(weights))
+
+# %%
+
+model.fit(X_train, y_train.to_numpy(), 
+    nn__batch_size=4096, 
+    nn__epochs=500, 
+    nn__class_weight=dict_weights,
+    nn__verbose=0)
+model.score(X_test, y_test.to_numpy())
+# %%
+from sklearn.metrics import multilabel_confusion_matrix
+
+y_pred = 1*(model.predict_proba(X_test) > 0.5)
+confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
+for i in range(10):
+    print("Confusion matrix for", y_test.columns[i])
+    print(confusion_matrix[i])
 
 # %%

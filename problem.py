@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import os
 from os.path import join, splitext
 import pickle as pkl
+import unidecode
 
 
 
@@ -84,6 +85,8 @@ def _read_data(path, train_or_test='train', save=True):
             y = pd.DataFrame(columns=[key for key in label.keys()])
         X.loc[f_name] = features
         y.loc[f_name] = label
+        # Add a column equal to the index
+    X['vote_uid'] = X.index 
 
     if save:
         file_name = join(path, DATA_HOME, train_or_test, train_or_test + '_data.pkl')
