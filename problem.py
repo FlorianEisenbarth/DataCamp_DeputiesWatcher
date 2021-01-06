@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import os
 from os.path import join, splitext
 import unidecode
+import pickle as pkl
 
 
 
@@ -68,7 +69,7 @@ class Vote:
 
         return X, y
 
-def _read_data(path, train_or_test='train'):
+def _read_data(path, train_or_test='train', save=True):
     ''' Return the features dataset X and the labels dataset y for either the train or the test
     '''
     directory = join(path, DATA_HOME, train_or_test)
@@ -87,6 +88,11 @@ def _read_data(path, train_or_test='train'):
 
     # Add a column equal to the index
     X['vote_uid'] = X.index 
+
+    if save:
+        file_name = join(path, DATA_HOME, train_or_test, train_or_test + '_data.pkl')
+        with open(file_name, 'wb') as f:
+            pkl.dump((X, y), f)
 
     return X, y
 
@@ -184,8 +190,19 @@ def _normalize_txt(txt: str) -> str:
         return txt
 
 def get_train_data(path='.'):
-    return _read_data(path=path, train_or_test='train')
+    file_name = join(path, DATA_HOME, 'train', 'train_data.pkl')
+    try:
+        with open(file_name, 'rb') as f:
+            X, y = pkl.load(f)
+    except:
+        X, y = _read_data(path=path, train_or_test='train', save=True)
+    return X, y
 
 def get_test_data(path='.'):
-    return _read_data(path=path, train_or_test='test')
-
+    file_name = join(path, DATA_HOME, 'test', 'test_data.pkl')
+    try:
+        with open(file_name, 'rb') as f:
+            X, y = pkl.load(f)
+    except:
+        X, y = _read_data(path=path, train_or_test='test', save=True)
+    return X, y
