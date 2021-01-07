@@ -7,6 +7,11 @@ from os.path import join, splitext
 import unidecode
 import pickle as pkl
 
+from rampwf.prediction_types.base import BasePrediction
+from rampwf.score_types import BaseScoreType
+from rampwf.workflows import Estimator
+
+
 
 
 DATA_HOME = "data"
@@ -68,6 +73,51 @@ class Vote:
             y[party] = 1. * (major_position == 'pours')
 
         return X, y
+
+# ----------
+# score type
+# ----------
+
+def _custom_precision(party_pos_array_true, party_pos_array_pred):
+    ''' Precision is the number of correct predictions divided by the number of predictions.
+        In our problem, one prediction is a vector of binaries entries zeros and ones. Thus,
+        a prediction set takes the form of a 2-dimensional array and the precision is
+        computed column-wise (there is one precision value per party position).
+
+        Returns:
+            a vector of precisions values between 0.0 and 1.0
+    '''
+    if len(party_pos_array_pred) == 0:  # empty prediction
+        return 0.0
+
+    error_matrix = (party_pos_array_pred == party_pos_array_true)
+    pred_number = len(party_pos_array_pred)
+    return party_pos_array_pred == sum(error_matrix, axis=0) / pred_number
+
+def _custom_recall(party_pos_array_true, party_pos_array_pred):
+    ''' Here, recall is the number of correctly predicted 'pour' party major position divided
+        by the actual number of 'pour' party major position (annoted as 1, versus 'not pour',
+        annoted as 0). In our problem, one prediction is a vector of binaries entries zeros and
+        ones. Thus, a prediction set takes the form of a 2-dimensional array and the recall is
+        computed column-wise (there is one recall value per party position).
+
+        Returns:
+            a vector of recall values between 0.0 and 1.0        
+    '''
+    if len(party_pos_array_pred) == 0:  # empty prediction
+        return 0.0
+
+    correct_pred_pour = np.zeros(party_pos_array_pred.shape[1])
+    for i in range(party_pos_array_pred.shape[0]):
+        pred = party_pos_array_pred[i]
+        for j in range(party_pos_array_pred.shape[1]):
+            if (party_pos_array_true[i,j] == 1) and (pred[j] == 1):
+                correct_pred_pour[j] += 1
+
+    return correct_pred_pour / np.sum(party_pos_array_true, axis=0)
+
+class CustomFScore(BaseScoreType):
+    pass
 
 def _read_data(path, train_or_test='train', save=True):
     ''' Return the features dataset X and the labels dataset y for either the train or the test
@@ -180,7 +230,6 @@ def _read_all_actors():
         else:
             output = acteur
     return output
-
 
 def _normalize_txt(txt: str) -> str:
     """Remove accents and lowercase text."""
