@@ -6,6 +6,7 @@ import os
 from os.path import join, splitext
 import unidecode
 import pickle as pkl
+from create_files import parties_complete_names
 
 from rampwf.prediction_types.base import BasePrediction
 from rampwf.score_types import BaseScoreType
@@ -87,12 +88,17 @@ def _custom_precision(party_pos_array_true, party_pos_array_pred):
         Returns:
             a vector of precisions values between 0.0 and 1.0
     '''
+    assert party_pos_array_true.shape == party_pos_array_pred.shape, ('The '
+            'true labels array and the prediction array should have same shape '
+            'but have shape ' + str(party_pos_array_true.shape) + ' and shape '
+            + str(party_pos_array_pred.shape) + ' respectively')
+    
     if len(party_pos_array_pred) == 0:  # empty prediction
         return 0.0
 
     error_matrix = (party_pos_array_pred == party_pos_array_true)
     pred_number = len(party_pos_array_pred)
-    return party_pos_array_pred == sum(error_matrix, axis=0) / pred_number
+    return np.sum(error_matrix, axis=0) / pred_number
 
 def _custom_recall(party_pos_array_true, party_pos_array_pred):
     ''' Here, recall is the number of correctly predicted 'pour' party major position divided
@@ -104,8 +110,15 @@ def _custom_recall(party_pos_array_true, party_pos_array_pred):
         Returns:
             a vector of recall values between 0.0 and 1.0        
     '''
+    assert party_pos_array_true.shape == party_pos_array_pred.shape, ('The '
+            'true labels array and the prediction arry should have same shape '
+            'but have shape ' + str(party_pos_array_true.shape) + ' and shape '
+            + str(party_pos_array_pred.shape) + ' respectively')
+
     if len(party_pos_array_pred) == 0:  # empty prediction
         return 0.0
+
+    n_pours_per_party = np.sum(party_pos_array_true, axis=0)
 
     correct_pred_pour = np.zeros(party_pos_array_pred.shape[1])
     for i in range(party_pos_array_pred.shape[0]):
@@ -114,10 +127,53 @@ def _custom_recall(party_pos_array_true, party_pos_array_pred):
             if (party_pos_array_true[i,j] == 1) and (pred[j] == 1):
                 correct_pred_pour[j] += 1
 
-    return correct_pred_pour / np.sum(party_pos_array_true, axis=0)
+    recall = np.zeros(party_pos_array_pred.shape[1])
+    for i in range(party_pos_array_pred.shape[1]):
+        if n_pours_per_party[i] == 0:
+            recall[i] = 1.
+        else:
+            recall[i] = correct_pred_pour[i] / n_pours_per_party[i]
+
+    return recall
+
+def get_parties_weights(path):
+    file_name = join(path, 'dpt_data', 'liste_deputes_excel.csv')
+    dpt_data = pd.read_csv(file_name, sep=';')
+    groups_column_name = dpt_data.columns[-1]
+    counts = dpt_data.groupby(groups_column_name).nunique()['identifiant'].to_dict()
+    list_count = np.array([counts['SOC'],
+                           counts['FI'],
+                           counts['Dem'],
+                           counts['LT'],
+                           counts['GDR'],
+                           counts['LaREM'],
+                           counts['Agir ens'],
+                           counts['UDI-I'],
+                           counts['LR'],
+                           counts['NI']])
+    list_count = list_count / np.sum(list_count)
+
+    return list_count
+
+PARTIES_WEIGHTS = get_parties_weights(path='.')
 
 class CustomFScore(BaseScoreType):
-    pass
+
+    def __init__(self, name="F-score (party position detection)", precision=3, weights=PARTIES_WEIGHTS):
+        self.name = name
+        self.precision = precision
+        self.weights = weights
+
+    def __call__(self, y_true, y_pred) -> float:
+        w = self.weights
+        prec = _custom_precision(y_true, y_pred)
+        rec = _custom_recall(y_true, y_pred)
+        F_score = np.zeros(y_pred.shape[1])
+        not_zero_idx = np.where(prec + rec != 0)
+        F_score[not_zero_idx] = (
+            2 * prec[not_zero_idx] * rec[not_zero_idx] / (prec[not_zero_idx] + rec[not_zero_idx])
+        )
+        return np.average(F_score, weights=w)
 
 def _read_data(path, train_or_test='train', save=True):
     ''' Return the features dataset X and the labels dataset y for either the train or the test
@@ -171,7 +227,6 @@ def get_actor_party_data():
 
     return actors_merge
 
-
 def _read_info_actors():
     filename = "data/nosdeputes.fr_synthese_2020-11-21.csv"
     df = pd.read_csv(filename, sep=";")
@@ -217,7 +272,6 @@ def _read_actor(filename):
         }
     )
     return output
-
 
 def _read_all_actors():
     all_acteur_filenames = os.listdir("data/acteur")
