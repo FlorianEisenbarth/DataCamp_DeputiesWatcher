@@ -7,8 +7,7 @@ from os.path import join, splitext
 import unidecode
 import pickle as pkl
 import sys
-from sklearn.model_selection import GroupShuffleSplit
-from create_files import PARTIES_SIGLES
+from sklearn.model_selection import KFold
 
 import rampwf
 from rampwf.prediction_types.base import BasePrediction
@@ -17,9 +16,9 @@ from rampwf.workflows import Estimator
 
 
 
+PARTIES_SIGLES = ['SOC', 'FI', 'Dem', 'LT', 'GDR', 'LaREM', 'Agir ens', 'UDI-I', 'LR', 'NI']
 RANDOM_STATE = 777
 DATA_HOME = "data"
-
 
 @dataclass
 class Vote:
@@ -181,6 +180,12 @@ class CustomFScore(BaseScoreType):
 
         return weights
 
+
+# -----------------------
+# A little bit of reading
+# -----------------------
+
+
 def _read_data(path, train_or_test='train', save=True):
     ''' Return the features dataset X and the labels dataset y for either the train or the test
     '''
@@ -208,30 +213,6 @@ def _read_data(path, train_or_test='train', save=True):
 
     return X, y
 
-def get_actor_party_data():
-    """
-    Returns general information about deputies and parties.
-    To be used for creating features.
-    Returns:
-        actors: pd.DataFrame with info about actors.
-    """
-    try:
-        actors = pd.read_csv("data/acteurs.csv")
-    except:
-        actors = _read_all_actors()
-        actors.to_csv("data/acteurs.csv")
-
-    actors_info = _read_info_actors()
-    actors["membre_fullname"] = actors.apply(
-        lambda x: x["membre_prenom"] + " " + x["membre_nom"], axis=1
-    )
-    actors["slug"] = actors["membre_fullname"].apply(_normalize_txt)
-    actors.drop(["membre_fullname"], axis=1, inplace=True)
-    actors_info.drop(["membre_prenom", "membre_nom"], axis=1, inplace=True)
-    actors_info["slug"] = actors_info["membre_fullname"].apply(_normalize_txt)
-    actors_merge = pd.merge(actors, actors_info, on="slug")
-
-    return actors_merge
 
 def _read_info_actors():
     filename = "data/nosdeputes.fr_synthese_2020-11-21.csv"
@@ -262,6 +243,7 @@ def _read_info_actors():
     df = df[new_cols]
     return df
 
+
 def _read_actor(filename):
     acteur = pd.read_csv(filename, sep=";")
     id = acteur["uid[1]"]
@@ -290,6 +272,31 @@ def _read_all_actors():
             output = acteur
     return output
 
+def get_actor_party_data():
+    """
+    Returns general information about deputies and parties.
+    To be used for creating features.
+    Returns:
+        actors: pd.DataFrame with info about actors.
+    """
+    try:
+        actors = pd.read_csv("data/acteurs.csv")
+    except:
+        actors = _read_all_actors()
+        actors.to_csv("data/acteurs.csv")
+
+    actors_info = _read_info_actors()
+    actors["membre_fullname"] = actors.apply(
+        lambda x: x["membre_prenom"] + " " + x["membre_nom"], axis=1
+    )
+    actors["slug"] = actors["membre_fullname"].apply(_normalize_txt)
+    actors.drop(["membre_fullname"], axis=1, inplace=True)
+    actors_info.drop(["membre_prenom", "membre_nom"], axis=1, inplace=True)
+    actors_info["slug"] = actors_info["membre_fullname"].apply(_normalize_txt)
+    actors_merge = pd.merge(actors, actors_info, on="slug")
+
+    return actors_merge
+
 def _normalize_txt(txt: str) -> str:
     """Remove accents and lowercase text."""
     if type(txt) == str:
@@ -297,13 +304,14 @@ def _normalize_txt(txt: str) -> str:
     else:
         return txt
 
+
 # -----------------------
 # Ramp problem definition
 # -----------------------
 
 
 problem_title = "Deputy Watchers"
-Predictions = rampwf.prediction_types.make_multiclass(label_names=PARTIES_SIGLES)
+#Predictions = rampwf.prediction_types.make_multiclass(label_names=PARTIES_SIGLES)
 workflow = Estimator()
 score_types = [CustomFScore()]
 
@@ -337,5 +345,5 @@ def get_test_data(path='.'):
     return X, y
 
 def get_cv(X, y):
-    cv = GroupShuffleSplit(n_splits=5, test_size=0.2, random_state=RANDOM_STATE)
+    cv = KFold(n_splits=5)
     return cv.split(X, y)

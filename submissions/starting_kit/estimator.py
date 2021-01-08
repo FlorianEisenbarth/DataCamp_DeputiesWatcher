@@ -1,5 +1,8 @@
 # %%
-
+import sys
+import os
+path = '\\'.join(os.path.abspath(__file__).split('\\')[:-3])
+sys.path.insert(0, path)
 from problem import get_train_data, get_test_data, get_actor_party_data
 
 import re, unidecode
@@ -395,13 +398,14 @@ def get_estimator():
 
 
 # %%
-model = get_estimator()
+#model = get_estimator()
 
 # %%
 #X_train, y_train = get_train_data()
 #X_test, y_test = get_test_data()
 
 # %%
+'''
 from sklearn.utils import class_weight
 
 weights = np.mean(np.sum(y_train, axis=0))/np.sum(y_train, axis=0)
@@ -423,5 +427,6 @@ confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
 for i in range(10):
     print("Confusion matrix for", y_test.columns[i])
     print(confusion_matrix[i])
+'''
 
 # %%
