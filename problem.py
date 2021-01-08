@@ -7,14 +7,17 @@ from os.path import join, splitext
 import unidecode
 import pickle as pkl
 import sys
+from sklearn.model_selection import GroupShuffleSplit
 from create_files import PARTIES_SIGLES
 
+import rampwf
 from rampwf.prediction_types.base import BasePrediction
 from rampwf.score_types import BaseScoreType
 from rampwf.workflows import Estimator
 
 
 
+RANDOM_STATE = 777
 DATA_HOME = "data"
 
 
@@ -294,6 +297,17 @@ def _normalize_txt(txt: str) -> str:
     else:
         return txt
 
+# -----------------------
+# Ramp problem definition
+# -----------------------
+
+
+problem_title = "Deputy Watchers"
+Predictions = rampwf.prediction_types.make_multiclass(label_names=PARTIES_SIGLES)
+workflow = Estimator()
+score_types = [CustomFScore()]
+
+
 def get_train_data(path='.'):
     file_name = join(path, DATA_HOME, 'train', 'train_data.pkl')
     if os.path.isfile(file_name):
@@ -321,3 +335,7 @@ def get_test_data(path='.'):
         sys.exit(0)
     
     return X, y
+
+def get_cv(X, y):
+    cv = GroupShuffleSplit(n_splits=5, test_size=0.2, random_state=RANDOM_STATE)
+    return cv.split(X, y)
