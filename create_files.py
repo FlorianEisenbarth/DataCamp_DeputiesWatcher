@@ -4,8 +4,8 @@ from os.path import join, splitext
 import pandas as pd
 import numpy as np
 
-
-
+##### DON'T CHANGE THE ORDER !
+PARTIES_SIGLES = ['SOC', 'FI', 'Dem', 'LT', 'GDR', 'LaREM', 'Agir ens', 'UDI-I', 'LR', 'NI']
 SPLIT_TRAIN_TEST = 0.8
 RELEVANT_VOTE_METADATA = [
     'id', #str
@@ -18,16 +18,16 @@ RELEVANT_VOTE_METADATA = [
 ]
 
 parties_complete_names = {
+    'SOC': 'Socialistes et Apparentés',
+    'FI': 'La France Insoumise',
+    'Dem': 'Mouvement Démocrate et Démocrates Apparentés',
+    'LT': 'Libertés et Territoires',
     'GDR': 'Gauche Démocrate et Républicaine',
     'LaREM': 'La République en Marche',
-    'LR': 'Les Républicains',
-    'LT': 'Libertés et Territoires',
-    'FI': 'La France Insoumise',
-    'UDI-I': 'UDI et Indépendants',
-    'SOC': 'Socialistes et Apparentés',
     'Agir ens': 'Agir Ensemble',
-    'NI': 'Non Inscrit',
-    'Dem': 'Mouvement Démocrate et Démocrates Apparentés'
+    'UDI-I': 'UDI et Indépendants',
+    'LR': 'Les Républicains',
+    'NI': 'Non Inscrit'
 }
 
 
@@ -108,7 +108,7 @@ def count_votes_per_party(file_name, input_actors_data='dpt_data/liste_deputes_e
         dpt_columns = dpt_data.columns
         dpt_data.set_index('identifiant', inplace=True)
         dpt_data.rename(columns={dpt_columns[-2]: 'parti', dpt_columns[-1]: 'parti_sigle'}, inplace=True)
-        parties = set(dpt_data['parti_sigle'])
+        parties = PARTIES_SIGLES
 
     parties_count_df = pd.DataFrame(
         np.zeros(shape=(len(parties), len(vote_columns)), dtype=int),
@@ -119,7 +119,7 @@ def count_votes_per_party(file_name, input_actors_data='dpt_data/liste_deputes_e
     for voter, vote in votes.items():
         if voter in dpt_data.index:
             voter_party = dpt_data.loc[voter, 'parti_sigle']
-        else:           # the deputy is not in the dataframe ; we don't include him/her in the ratio
+        else:           # the deputy is not in the dataframe ; we don't include him/her in the count
             continue
         parties_count_df.loc[voter_party, vote] += 1
 
@@ -152,4 +152,4 @@ if __name__ == "__main__":
     create_json_vote_files()
     print('creating csv files...')
     create_vote_count_csv_files()
-    print('done.')
+    print('done, all set up.')

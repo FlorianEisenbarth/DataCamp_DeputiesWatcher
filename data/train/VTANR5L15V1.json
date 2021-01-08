@@ -1,10 +1,1 @@
-{
-    "id": "VTANR5L15V1",
-    "code_type_vote": "SPS",
-    "libelle_type_vote": "scrutin public solennel",
-    "sort": "adopt\u00e9",
-    "demandeur": "Conference des Presidents",
-    "libelle": "la declaration de politique generale du Gouvernement de M. Edouard Philippe (application de l'article 49 alinea premier de la Constitution).",
-    "nb_votants": "566",
-    "date": "2017-07-04"
-}
+{"id": "VTANR5L15V1", "code_type_vote": "SPS", "libelle_type_vote": "scrutin public solennel", "demandeur": "Conference des Presidents", "libelle": "la declaration de politique generale du Gouvernement de M. Edouard Philippe (application de l'article 49 alinea premier de la Constitution).", "nb_votants": "566", "date": "2017-07-04"}

@@ -6,12 +6,12 @@ import os
 from os.path import join, splitext
 import unidecode
 import pickle as pkl
-from create_files import parties_complete_names
+import sys
+from create_files import PARTIES_SIGLES
 
 from rampwf.prediction_types.base import BasePrediction
 from rampwf.score_types import BaseScoreType
 from rampwf.workflows import Estimator
-
 
 
 
@@ -136,33 +136,15 @@ def _custom_recall(party_pos_array_true, party_pos_array_pred):
 
     return recall
 
-def get_parties_weights(path):
-    file_name = join(path, 'dpt_data', 'liste_deputes_excel.csv')
-    dpt_data = pd.read_csv(file_name, sep=';')
-    groups_column_name = dpt_data.columns[-1]
-    counts = dpt_data.groupby(groups_column_name).nunique()['identifiant'].to_dict()
-    list_count = np.array([counts['SOC'],
-                           counts['FI'],
-                           counts['Dem'],
-                           counts['LT'],
-                           counts['GDR'],
-                           counts['LaREM'],
-                           counts['Agir ens'],
-                           counts['UDI-I'],
-                           counts['LR'],
-                           counts['NI']])
-    list_count = list_count / np.sum(list_count)
-
-    return list_count
-
-PARTIES_WEIGHTS = get_parties_weights(path='.')
-
 class CustomFScore(BaseScoreType):
 
-    def __init__(self, name="F-score (party position detection)", precision=3, weights=PARTIES_WEIGHTS):
+    weights_type = 'log'    # whether to use mere proportion ('linear') 
+                            # or log-proportion ('log') of deputies
+
+    def __init__(self, name="F-score (party position detection)", precision=3):
         self.name = name
         self.precision = precision
-        self.weights = weights
+        self.weights = self.get_parties_weights(path='.', type=CustomFScore.weights_type)
 
     def __call__(self, y_true, y_pred) -> float:
         w = self.weights
@@ -174,6 +156,27 @@ class CustomFScore(BaseScoreType):
             2 * prec[not_zero_idx] * rec[not_zero_idx] / (prec[not_zero_idx] + rec[not_zero_idx])
         )
         return np.average(F_score, weights=w)
+    
+    def get_parties_weights(self, path, type='linear'):
+        ''' Return the weights associated to each party. The default weight for a party
+            (type='linear') is the mere proportion of deputies in the party among all the
+            deputies. if type='log', the weight is passed through natural logartihm.
+        '''
+        file_name = join(path, 'dpt_data', 'liste_deputes_excel.csv')
+        dpt_data = pd.read_csv(file_name, sep=';')
+        groups_column_name = dpt_data.columns[-1]
+        counts = dpt_data.groupby(groups_column_name).nunique()['identifiant'].to_dict()
+        if type == 'linear':
+            list_count = np.array([counts[key] for key in PARTIES_SIGLES])
+        elif type == 'log':
+            list_count = np.log(
+                np.array([counts[key] for key in PARTIES_SIGLES])
+            )
+        else:
+            raise ValueError('Unknown value for argument \'type\' :', type)
+        weights = list_count / np.sum(list_count)
+
+        return weights
 
 def _read_data(path, train_or_test='train', save=True):
     ''' Return the features dataset X and the labels dataset y for either the train or the test
@@ -256,7 +259,6 @@ def _read_info_actors():
     df = df[new_cols]
     return df
 
-
 def _read_actor(filename):
     acteur = pd.read_csv(filename, sep=";")
     id = acteur["uid[1]"]
@@ -294,18 +296,28 @@ def _normalize_txt(txt: str) -> str:
 
 def get_train_data(path='.'):
     file_name = join(path, DATA_HOME, 'train', 'train_data.pkl')
-    try:
+    if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             X, y = pkl.load(f)
-    except:
+        return X, y
+    try:
         X, y = _read_data(path=path, train_or_test='train', save=True)
+    except FileNotFoundError:
+        print('Data files not created yet. Run \'create_files.py\' first.')
+        sys.exit(0)
+
     return X, y
 
 def get_test_data(path='.'):
     file_name = join(path, DATA_HOME, 'test', 'test_data.pkl')
-    try:
+    if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             X, y = pkl.load(f)
-    except:
+        return X, y
+    try:
         X, y = _read_data(path=path, train_or_test='test', save=True)
+    except FileNotFoundError:
+        print('Data files not created yet. Run \'create_files.py\' first.')
+        sys.exit(0)
+    
     return X, y
