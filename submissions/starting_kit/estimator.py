@@ -17,7 +17,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.tree import DecisionTreeClassifier
-
+from sklearn.utils import class_weight
 
 class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
@@ -30,11 +30,11 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None, **params):
-        X["demandeur_group"] = X["demandeur"].apply(
+        X["demandeur_parti"] = X["demandeur"].apply(
             self.find_parti_demandeur
         )
-        X['demandeur_group'].fillna('[UNK]', inplace=True)
-        X['demandeur_group'] = X['demandeur_group'].apply(lambda x: np.str_(x))
+        X['demandeur_parti'].fillna('[UNK]', inplace=True)
+        X['demandeur_parti'] = X['demandeur_parti'].apply(lambda x: np.str_(x))
         return X
 
     def find_parti_demandeur(self, txt: str) -> list:
@@ -324,6 +324,29 @@ class DenseTransformer(TransformerMixin):
     def transform(self, X, y=None, **fit_params):
         return X.todense()
 
+class NeuralNet(BaseEstimator):
+    def __init__(self, neuralNet, epochs, batch_size, verbose):
+        self.neuralNet = neuralNet
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.verbose = verbose
+
+    def fit(self, X, y):
+        weights = np.mean(np.sum(y, axis=0))/np.sum(y, axis=0)
+        self.dict_weights = dict(enumerate(weights))
+        self.classifier = KerasClassifier(build_fn=self.neuralNet, epochs=30, batch_size=64, verbose=self.verbose, class_weight=self.dict_weights)
+        self.classifier.fit(X, y)
+        return self
+    
+    def predict(self, X):
+        return self.classifier.predict(X)
+    
+    def score(self, X, y):
+        return self.classifier.score(X, y)
+    
+    def predict_proba(self, X):
+        return self.classifier.predict_proba(X)
+
 
 # %%
 
@@ -361,7 +384,7 @@ def get_estimator():
         (OneHotEncoder(), ["libelle_type"]),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
-            "demandeur_group",
+            "demandeur_parti",
         ),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
@@ -371,16 +394,16 @@ def get_estimator():
         (text_vectorizer, "libelle_desc"),
     )
 
-    #forest = LogisticRegression()
-    #multi_target_forest = MultiOutputClassifier(forest, n_jobs=-1)
 
     def create_nn_model(): 
         nn = Sequential()
-        nn.add(Dense(64, activation='relu', input_shape=(1161,)))
+        nn.add(Dense(64, activation='relu'))
         nn.add(Dropout(0.2))
         nn.add(Dense(10, activation= "sigmoid"))
         nn.compile(optimizer=Adam(learning_rate=1e-4), loss='binary_crossentropy', metrics=["accuracy"])
         return nn
+
+    classifier = NeuralNet(create_nn_model, epochs=300, batch_size=60, verbose=1)
 
     model = Pipeline(
         [
@@ -390,9 +413,29 @@ def get_estimator():
             ("vectorize_vote", vectorize_vote),
             ("densify", DenseTransformer()),
             ("normalize", Normalizer()),
-            ("nn", KerasClassifier(create_nn_model))
+            ("nn", classifier)
         ]
     )
     return model
 
 
+
+# %%
+model = get_estimator()
+
+# %%
+X_train, y_train = get_train_data()
+X_test, y_test = get_test_data()
+
+# %%
+
+model.fit(X_train, y_train.to_numpy())
+print(model.score(X_test, y_test.to_numpy()))
+# %%
+from sklearn.metrics import multilabel_confusion_matrix
+
+y_pred = 1*(model.predict_proba(X_test) > 0.5)
+confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
+for i in range(10):
+    print("Confusion matrix for", y_test.columns[i])
+    print(confusion_matrix[i])
