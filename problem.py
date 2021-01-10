@@ -143,6 +143,7 @@ class CustomFScore(BaseScoreType):
                             # or log-proportion ('log') of deputies
 
     def __init__(self, name="F-score (party position detection)", precision=3):
+        path = '\\'.join(os.path.abspath(__file__).split('\\')[:-1])
         self.name = name
         self.precision = precision
         self.weights = self.get_parties_weights(path=path, type=CustomFScore.weights_type)
