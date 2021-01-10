@@ -30,11 +30,11 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None, **params):
-        X["demandeur_parti"] = X["demandeur"].apply(
+        X["demandeur_group"] = X["demandeur"].apply(
             self.find_parti_demandeur
         )
-        X['demandeur_parti'].fillna('[UNK]', inplace=True)
-        X['demandeur_parti'] = X['demandeur_parti'].apply(lambda x: np.str_(x))
+        X['demandeur_group'].fillna('[UNK]', inplace=True)
+        X['demandeur_group'] = X['demandeur_group'].apply(lambda x: np.str_(x))
         return X
 
     def find_parti_demandeur(self, txt: str) -> list:
@@ -361,7 +361,7 @@ def get_estimator():
         (OneHotEncoder(), ["libelle_type"]),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
-            "demandeur_parti",
+            "demandeur_group",
         ),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
@@ -396,37 +396,3 @@ def get_estimator():
     return model
 
 
-
-# %%
-#model = get_estimator()
-
-# %%
-#X_train, y_train = get_train_data()
-#X_test, y_test = get_test_data()
-
-# %%
-'''
-from sklearn.utils import class_weight
-
-weights = np.mean(np.sum(y_train, axis=0))/np.sum(y_train, axis=0)
-dict_weights = dict(enumerate(weights))
-
-# %%
-
-model.fit(X_train, y_train.to_numpy(), 
-    nn__batch_size=4096, 
-    nn__epochs=500, 
-    nn__class_weight=dict_weights,
-    nn__verbose=0)
-model.score(X_test, y_test.to_numpy())
-# %%
-from sklearn.metrics import multilabel_confusion_matrix
-
-y_pred = 1*(model.predict_proba(X_test) > 0.5)
-confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
-for i in range(10):
-    print("Confusion matrix for", y_test.columns[i])
-    print(confusion_matrix[i])
-'''
-
-# %%
