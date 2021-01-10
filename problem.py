@@ -15,9 +15,8 @@ from rampwf.score_types import BaseScoreType
 from rampwf.workflows import Estimator
 
 
-
+##### KEEP OFF ! DO NOT TOUCH !
 PARTIES_SIGLES = ['SOC', 'FI', 'Dem', 'LT', 'GDR', 'LaREM', 'Agir ens', 'UDI-I', 'LR', 'NI']
-RANDOM_STATE = 777
 DATA_HOME = "data"
 
 @dataclass
@@ -146,7 +145,7 @@ class CustomFScore(BaseScoreType):
     def __init__(self, name="F-score (party position detection)", precision=3):
         self.name = name
         self.precision = precision
-        self.weights = self.get_parties_weights(path='.', type=CustomFScore.weights_type)
+        self.weights = self.get_parties_weights(path=path, type=CustomFScore.weights_type)
 
     def __call__(self, y_true, y_pred) -> float:
         w = self.weights
@@ -212,7 +211,6 @@ def _read_data(path, train_or_test='train', save=True):
             pkl.dump((X, y), f)
 
     return X, y
-
 
 def _read_info_actors():
     filename = "data/nosdeputes.fr_synthese_2020-11-21.csv"
@@ -311,7 +309,7 @@ def _normalize_txt(txt: str) -> str:
 
 
 problem_title = "Deputy Watchers"
-#Predictions = rampwf.prediction_types.make_multiclass(label_names=PARTIES_SIGLES)
+Predictions = rampwf.prediction_types.make_multiclass(label_names=PARTIES_SIGLES)
 workflow = Estimator()
 score_types = [CustomFScore()]
 
