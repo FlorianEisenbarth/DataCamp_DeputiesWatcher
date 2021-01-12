@@ -1,10 +1,11 @@
 # %%
 import sys
 import os
-path = '\\'.join(os.path.abspath(__file__).split('\\')[:-3])
-sys.path.insert(0, path)
-from problem import get_train_data, get_test_data, get_actor_party_data
 
+path = "\\".join(os.path.abspath(__file__).split("\\")[:-3])
+sys.path.insert(0, path)
+from problem import get_actor_party_data
+from sklearn.base import is_classifier
 import re, unidecode
 import pandas as pd
 import numpy as np
@@ -17,6 +18,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.utils import class_weight
 
 
 class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
@@ -30,11 +32,9 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None, **params):
-        X["demandeur_group"] = X["demandeur"].apply(
-            self.find_parti_demandeur
-        )
-        X['demandeur_group'].fillna('[UNK]', inplace=True)
-        X['demandeur_group'] = X['demandeur_group'].apply(lambda x: np.str_(x))
+        X["demandeur_group"] = X["demandeur"].apply(self.find_parti_demandeur)
+        X["demandeur_group"].fillna("[UNK]", inplace=True)
+        X["demandeur_group"] = X["demandeur_group"].apply(lambda x: np.str_(x))
         return X
 
     def find_parti_demandeur(self, txt: str) -> list:
@@ -59,7 +59,7 @@ class FindGroupVoteDemandeurTransformer(BaseEstimator, TransformerMixin):
             )
             # Add capital letter
             txt = txt.replace(
-                "UDI, Agir et indépendants", "UDI, Agir et Indépendants"
+                "UDI Agir et indépendants", "UDI Agir et Indépendants"
             )
             # Remove non relevant text
             txt = txt.replace("President(e) du groupe", "")
@@ -99,6 +99,7 @@ class DecomposeVoteObjetTransformer(BaseEstimator, TransformerMixin):
             "la proposition de résolution",
             "l'ensemble de la proposition de résolution",
             "les crédits",
+            "la motion",
             "la motion référendaire",
             "la motion de renvoi en commission",
             "la motion de rejet préalable",
@@ -313,9 +314,10 @@ class FindPartyActorTransformer(BaseEstimator, TransformerMixin):
         # print(X.head(5))
         # Join with the original dataframe
         X = X.merge(X_, how="left", on="vote_uid")
-        X['auteur_parti'].fillna("[NAN]", inplace=True)
-        X['auteur_parti'] = X['auteur_parti'].apply(lambda x: np.str_(x))
+        X["auteur_parti"].fillna("[NAN]", inplace=True)
+        X["auteur_parti"] = X["auteur_parti"].apply(lambda x: np.str_(x))
         return X
+
 
 class DenseTransformer(TransformerMixin):
     def fit(self, X, y=None, **fit_params):
@@ -323,6 +325,36 @@ class DenseTransformer(TransformerMixin):
 
     def transform(self, X, y=None, **fit_params):
         return X.todense()
+
+
+class NeuralNet(BaseEstimator):
+    def __init__(self, neuralNet, epochs, batch_size, verbose):
+        self.neuralNet = neuralNet
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.verbose = verbose
+
+    def fit(self, X, y):
+        weights = np.mean(np.sum(y, axis=0)) / np.sum(y, axis=0)
+        self.dict_weights = dict(enumerate(weights))
+        self.classifier = KerasClassifier(
+            build_fn=self.neuralNet,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            verbose=self.verbose,
+            class_weight=self.dict_weights,
+        )
+        self.classifier.fit(X, y)
+        return self
+
+    def predict(self, X):
+        return self.classifier.predict(X)
+
+    def score(self, X, y):
+        return self.classifier.score(X, y)
+
+    def predict_proba(self, X):
+        return self.classifier.predict_proba(X)
 
 
 # %%
@@ -353,12 +385,12 @@ def get_estimator():
     idty = lambda x: x
 
     def encode_party_presence(x):
-        y = x.iloc[:,0].apply(pd.Series)
-        #y[y> 0] = 1
+        y = x.iloc[:, 0].apply(pd.Series)
+        # y[y> 0] = 1
         return y
 
     vectorize_vote = make_column_transformer(
-        (OneHotEncoder(), ["libelle_type"]),
+        (OneHotEncoder(), ["libelle_type_vote"]),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
             "demandeur_group",
@@ -367,20 +399,28 @@ def get_estimator():
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
             "auteur_parti",
         ),
-        (FunctionTransformer(func=encode_party_presence), ["presence_per_party"]),
+        (
+            FunctionTransformer(func=encode_party_presence),
+            ["presence_per_party"],
+        ),
         (text_vectorizer, "libelle_desc"),
     )
 
-    #forest = LogisticRegression()
-    #multi_target_forest = MultiOutputClassifier(forest, n_jobs=-1)
-
-    def create_nn_model(): 
+    def create_nn_model():
         nn = Sequential()
-        nn.add(Dense(64, activation='relu', input_shape=(1161,)))
+        nn.add(Dense(64, activation="relu"))
         nn.add(Dropout(0.2))
-        nn.add(Dense(10, activation= "sigmoid"))
-        nn.compile(optimizer=Adam(learning_rate=1e-4), loss='binary_crossentropy', metrics=["accuracy"])
+        nn.add(Dense(10, activation="sigmoid"))
+        nn.compile(
+            optimizer=Adam(learning_rate=1e-4),
+            loss="binary_crossentropy",
+            metrics=["accuracy"],
+        )
         return nn
+
+    classifier = NeuralNet(
+        create_nn_model, epochs=500, batch_size=5000, verbose=0
+    )
 
     model = Pipeline(
         [
@@ -390,9 +430,7 @@ def get_estimator():
             ("vectorize_vote", vectorize_vote),
             ("densify", DenseTransformer()),
             ("normalize", Normalizer()),
-            ("nn", KerasClassifier(create_nn_model))
+            ("nn", classifier),
         ]
     )
     return model
-
-
