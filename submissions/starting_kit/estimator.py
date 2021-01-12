@@ -4,7 +4,7 @@ import os
 path = '\\'.join(os.path.abspath(__file__).split('\\')[:-3])
 sys.path.insert(0, path)
 from problem import get_train_data, get_test_data, get_actor_party_data
-
+from sklearn.base import is_classifier
 import re, unidecode
 import pandas as pd
 import numpy as np
@@ -381,7 +381,7 @@ def get_estimator():
         return y
 
     vectorize_vote = make_column_transformer(
-        (OneHotEncoder(), ["libelle_type"]),
+        (OneHotEncoder(), ["libelle_type_vote"]),
         (
             CountVectorizer(binary=True, preprocessor=idty, tokenizer=idty),
             "demandeur_parti",
@@ -403,7 +403,7 @@ def get_estimator():
         nn.compile(optimizer=Adam(learning_rate=1e-4), loss='binary_crossentropy', metrics=["accuracy"])
         return nn
 
-    classifier = NeuralNet(create_nn_model, epochs=300, batch_size=60, verbose=1)
+    classifier = NeuralNet(create_nn_model, epochs=300, batch_size=60, verbose=0)
 
     model = Pipeline(
         [
@@ -420,22 +420,23 @@ def get_estimator():
 
 
 
-# %%
-model = get_estimator()
+# # %%
+# model = get_estimator()
 
-# %%
-X_train, y_train = get_train_data()
-X_test, y_test = get_test_data()
+# # %%
+# X_train, y_train = get_train_data()
+# X_test, y_test = get_test_data()
 
-# %%
+# # %%
 
-model.fit(X_train, y_train.to_numpy())
-print(model.score(X_test, y_test.to_numpy()))
-# %%
-from sklearn.metrics import multilabel_confusion_matrix
+# model.fit(X_train, y_train.to_numpy())
+# print(model.score(X_test, y_test.to_numpy()))
+# # %%
+# from sklearn.metrics import multilabel_confusion_matrix
 
-y_pred = 1*(model.predict_proba(X_test) > 0.5)
-confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
-for i in range(10):
-    print("Confusion matrix for", y_test.columns[i])
-    print(confusion_matrix[i])
+# y_pred = 1*(model.predict_proba(X_test) > 0.5)
+# print(X_train.shape)
+# confusion_matrix = multilabel_confusion_matrix(y_test.to_numpy(), y_pred)
+# for i in range(10):
+#     print("Confusion matrix for", y_test.columns[i])
+#     print(confusion_matrix[i])

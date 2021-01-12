@@ -8,17 +8,22 @@ import unidecode
 import pickle as pkl
 import sys
 from sklearn.model_selection import KFold
-
+import functools
 import rampwf
+
+from sklearn.base import is_classifier
 from rampwf.prediction_types.base import BasePrediction
 from rampwf.score_types import BaseScoreType
-from rampwf.workflows import Estimator
+from rampwf.workflows import SKLearnPipeline
+import warnings
 
 
-##### KEEP OFF ! DO NOT TOUCH !
 PARTIES_SIGLES = ['SOC', 'FI', 'Dem', 'LT', 'GDR', 'LaREM', 'Agir ens', 'UDI-I', 'LR', 'NI']
+RANDOM_STATE = 777
 DATA_HOME = "data"
 
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
 @dataclass
 class Vote:
     ''' Base class containing all relevant basis information of the dataset
@@ -143,10 +148,9 @@ class CustomFScore(BaseScoreType):
                             # or log-proportion ('log') of deputies
 
     def __init__(self, name="F-score (party position detection)", precision=3):
-        path = '\\'.join(os.path.abspath(__file__).split('\\')[:-1])
         self.name = name
         self.precision = precision
-        self.weights = self.get_parties_weights(path=path, type=CustomFScore.weights_type)
+        self.weights = self.get_parties_weights(path='.', type=CustomFScore.weights_type)
 
     def __call__(self, y_true, y_pred) -> float:
         w = self.weights
@@ -205,13 +209,14 @@ def _read_data(path, train_or_test='train', save=True):
 
     # Add a column equal to the index
     X['vote_uid'] = X.index 
-
+    y = y.to_numpy()
     if save:
         file_name = join(path, DATA_HOME, train_or_test, train_or_test + '_data.pkl')
         with open(file_name, 'wb') as f:
             pkl.dump((X, y), f)
 
     return X, y
+
 
 def _read_info_actors():
     filename = "data/nosdeputes.fr_synthese_2020-11-21.csv"
@@ -308,12 +313,128 @@ def _normalize_txt(txt: str) -> str:
 # Ramp problem definition
 # -----------------------
 
+class _MultiOutputClassification(BasePrediction):
+    def __init__(self, n_columns, y_pred=None, y_true=None, n_samples=None):
+        self.n_columns = n_columns
+        if y_pred is not None:
+            self.y_pred = np.array(y_pred)
+        elif y_true is not None:
+            self.y_pred = np.array(y_true)
+        elif n_samples is not None:
+            if self.n_columns == 0:
+                shape = (n_samples)
+            else:
+                shape = (n_samples, self.n_columns)
+            self.y_pred = np.empty(shape, dtype=float)
+            self.y_pred.fill(np.nan)
+        else:
+            raise ValueError(
+                'Missing init argument: y_pred, y_true, or n_samples')
+        self.check_y_pred_dimensions()
+
+    @classmethod
+    def combine(cls, predictions_list, index_list=None):
+        """Inherits from the base class where the scores are averaged.
+        Here, averaged predictions < 0.5 will be set to 0.0 and averaged
+        predictions >= 0.5 will be set to 1.0 so that `y_pred` will consist
+        only of 0.0s and 1.0s.
+        """
+        # call the combine from the BasePrediction
+        combined_predictions = super(
+            _MultiOutputClassification, cls
+            ).combine(
+                predictions_list=predictions_list,
+                index_list=index_list
+                )
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            combined_predictions.y_pred[
+                combined_predictions.y_pred < 0.5] = 0.0
+            combined_predictions.y_pred[
+                combined_predictions.y_pred >= 0.5] = 1.0
+
+        return combined_predictions
+
+
+# Workflow for the classification problem which uses predict instead of
+# predict_proba
+class EstimatorVotes(SKLearnPipeline):
+    """Choose predict method.
+
+    Parameters
+    ----------
+    predict_method : {'auto', 'predict', 'predict_proba',
+            'decision_function'}, default='auto'
+        Prediction method to use. If 'auto', uses 'predict_proba' when
+        estimator is a classifier and 'predict' otherwise.
+    """
+    def __init__(self, predict_method='auto'):
+        super().__init__()
+        self.predict_method = predict_method
+
+    def test_submission(self, estimator_fitted, X):
+        """Predict using a fitted estimator.
+
+        Parameters
+        ----------
+        estimator_fitted : Estimator object
+            A fitted scikit-learn estimator.
+        X : {array-like, sparse matrix, dataframe} 
+            The test data set.
+
+        Returns
+        -------
+        pred 
+        """
+        methods = ('auto', 'predict', 'predict_proba', 'decision_function')
+        X = X.reset_index(drop=True)  # make sure the indices are ordered
+
+
+        if self.predict_method not in methods:
+            raise NotImplementedError(f"'method' should be one of: {methods} "
+                                      f"Got: {self.predict_method}")
+
+        if self.predict_method == 'auto':
+            y_pred = estimator_fitted.predict_proba(X)
+        elif hasattr(estimator_fitted, self.predict_method):
+            # call estimator with the `predict_method`
+            est_predict = getattr(estimator_fitted, self.predict_method)
+            y_pred = est_predict(X)
+        else:
+            raise NotImplementedError("Estimator does not support method: "
+                                      f"{self.predict_method}.")
+
+        if np.any(np.isnan(y_pred)):
+            raise ValueError('NaNs found in the predictions.')
+
+        return 1*(y_pred >= 0.5)
+
+
+def make_workflow():
+    # defines new workflow, where predict instead of predict_proba is called
+    return EstimatorVotes(predict_method='auto')
+
+
+def partial_multioutput(cls=_MultiOutputClassification, **kwds):
+    # this class partially inititates _MultiOutputClassification with given
+    # keywords
+    class _PartialMultiOutputClassification(_MultiOutputClassification):
+        __init__ = functools.partialmethod(cls.__init__, **kwds)
+    return _PartialMultiOutputClassification
+
+
+def make_multioutput(n_columns):
+    return partial_multioutput(n_columns=n_columns)
 
 problem_title = "Deputy Watchers"
-Predictions = rampwf.prediction_types.make_multiclass(label_names=PARTIES_SIGLES)
-workflow = Estimator()
+Predictions = make_multioutput(n_columns=len(PARTIES_SIGLES))
+workflow = make_workflow()
 score_types = [CustomFScore()]
 
+
+def get_cv(X, y):
+    cv = KFold(n_splits=5)
+    return cv.split(X, y)
 
 def get_train_data(path='.'):
     file_name = join(path, DATA_HOME, 'train', 'train_data.pkl')
@@ -326,7 +447,6 @@ def get_train_data(path='.'):
     except FileNotFoundError:
         print('Data files not created yet. Run \'create_files.py\' first.')
         sys.exit(0)
-
     return X, y
 
 def get_test_data(path='.'):
@@ -342,7 +462,3 @@ def get_test_data(path='.'):
         sys.exit(0)
     
     return X, y
-
-def get_cv(X, y):
-    cv = KFold(n_splits=5)
-    return cv.split(X, y)
