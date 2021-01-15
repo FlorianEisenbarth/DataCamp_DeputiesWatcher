@@ -16,7 +16,7 @@ from sklearn.compose import make_column_transformer
 
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils import class_weight
 
@@ -348,7 +348,7 @@ class NeuralNet(BaseEstimator):
         return self
 
     def predict(self, X):
-        return self.classifier.predict(X)
+        return self.classifier.predict_proba(X) > 0.5
 
     def score(self, X, y):
         return self.classifier.score(X, y)
@@ -359,9 +359,7 @@ class NeuralNet(BaseEstimator):
 
 # %%
 
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.preprocessing import FunctionTransformer, Normalizer
-from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import Normalizer, FunctionTransformer
 from keras import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
@@ -370,9 +368,8 @@ from sklearn.utils import class_weight
 
 
 def get_estimator():
-    # TODO : check mçi c'est ok de faire ça.
-    # Si c'est pas ok, ajouter un fichier actors.csv au dossier de estimator.py
     actors = get_actor_party_data()  # Additional data about deputies
+    # Doing this is allowed
 
     find_group_vote_demandeur = FindGroupVoteDemandeurTransformer()
     decompose_vote_object = DecomposeVoteObjetTransformer()
@@ -381,12 +378,11 @@ def get_estimator():
     encode_category = make_pipeline(
         SimpleImputer(strategy="constant", fill_value=["unknown"])
     )
-    text_vectorizer = make_pipeline(CountVectorizer(), TfidfTransformer())
+
     idty = lambda x: x
 
     def encode_party_presence(x):
         y = x.iloc[:, 0].apply(pd.Series)
-        # y[y> 0] = 1
         return y
 
     vectorize_vote = make_column_transformer(
@@ -403,7 +399,8 @@ def get_estimator():
             FunctionTransformer(func=encode_party_presence),
             ["presence_per_party"],
         ),
-        (text_vectorizer, "libelle_desc"),
+        # (CountVectorizer(binary=True), "libelle_desc"),
+        (TfidfVectorizer(binary=True), "libelle_desc"),
     )
 
     def create_nn_model():
@@ -412,14 +409,14 @@ def get_estimator():
         nn.add(Dropout(0.2))
         nn.add(Dense(10, activation="sigmoid"))
         nn.compile(
-            optimizer=Adam(learning_rate=1e-4),
+            optimizer=Adam(learning_rate=1e-3, decay=1e-2 / 500),
             loss="binary_crossentropy",
             metrics=["accuracy"],
         )
         return nn
 
     classifier = NeuralNet(
-        create_nn_model, epochs=500, batch_size=5000, verbose=0
+        create_nn_model, epochs=1000, batch_size=100, verbose=0
     )
 
     model = Pipeline(

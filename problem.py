@@ -12,6 +12,7 @@ import functools
 import rampwf
 
 from sklearn.base import is_classifier
+from sklearn.metrics import f1_score
 from rampwf.prediction_types.base import BasePrediction
 from rampwf.score_types import BaseScoreType
 from rampwf.workflows import SKLearnPipeline
@@ -111,67 +112,6 @@ class Vote:
 # ----------
 
 
-def _custom_precision(party_pos_array_true, party_pos_array_pred):
-    """Precision is the number of correct predictions divided by the number of predictions.
-    In our problem, one prediction is a vector of binaries entries zeros and ones. Thus,
-    a prediction set takes the form of a 2-dimensional array and the precision is
-    computed column-wise (there is one precision value per party position).
-
-    Returns:
-        a vector of precisions values between 0.0 and 1.0
-    """
-    assert (
-        party_pos_array_true.shape == party_pos_array_pred.shape
-    ), f"The true labels array and the prediction array \
-        should have same shape but have shape {party_pos_array_true.shape} \
-        and shape {party_pos_array_pred.shape} respectively"
-
-    if len(party_pos_array_pred) == 0:  # empty prediction
-        return 0.0
-
-    error_matrix = party_pos_array_pred == party_pos_array_true
-    pred_number = len(party_pos_array_pred)
-    return np.sum(error_matrix, axis=0) / pred_number
-
-
-def _custom_recall(party_pos_array_true, party_pos_array_pred):
-    """Here, recall is the number of correctly predicted 'pour' party major position divided
-    by the actual number of 'pour' party major position (annoted as 1, versus 'not pour',
-    annoted as 0). In our problem, one prediction is a vector of binaries entries zeros and
-    ones. Thus, a prediction set takes the form of a 2-dimensional array and the recall is
-    computed column-wise (there is one recall value per party position).
-
-    Returns:
-        a vector of recall values between 0.0 and 1.0
-    """
-    assert (
-        party_pos_array_true.shape == party_pos_array_pred.shape
-    ), f"The true labels array and the prediction array \
-        should have same shape but have shape {party_pos_array_true.shape} \
-        and shape {party_pos_array_pred.shape} respectively"
-
-    if len(party_pos_array_pred) == 0:  # empty prediction
-        return 0.0
-
-    n_pours_per_party = np.sum(party_pos_array_true, axis=0)
-
-    correct_pred_pour = np.zeros(party_pos_array_pred.shape[1])
-    for i in range(party_pos_array_pred.shape[0]):
-        pred = party_pos_array_pred[i]
-        for j in range(party_pos_array_pred.shape[1]):
-            if (party_pos_array_true[i, j] == 1) and (pred[j] == 1):
-                correct_pred_pour[j] += 1
-
-    recall = np.zeros(party_pos_array_pred.shape[1])
-    for i in range(party_pos_array_pred.shape[1]):
-        if n_pours_per_party[i] == 0:
-            recall[i] = 1.0
-        else:
-            recall[i] = correct_pred_pour[i] / n_pours_per_party[i]
-
-    return recall
-
-
 class CustomF1Score(BaseScoreType):
     def __init__(
         self,
@@ -185,24 +125,17 @@ class CustomF1Score(BaseScoreType):
             precision (int, optional): decimals considered. Defaults to 3.
         """
         self.name = f"Weighted F1-score ({weights_type})"
+        self.set_weights(path=".", type=weights_type)
         self.precision = precision
-        self.weights = self.get_parties_weights(path=".", type=weights_type)
 
     def __call__(self, y_true, y_pred) -> float:
-        w = self.weights
-        prec = _custom_precision(y_true, y_pred)
-        rec = _custom_recall(y_true, y_pred)
-        F_score = np.zeros(y_pred.shape[1])
-        not_zero_idx = np.where(prec + rec != 0)
-        F_score[not_zero_idx] = (
-            2
-            * prec[not_zero_idx]
-            * rec[not_zero_idx]
-            / (prec[not_zero_idx] + rec[not_zero_idx])
-        )
-        return np.average(F_score, weights=w)
+        score_list = []
+        for i, w in enumerate(self.weights_):
+            score_list.append(f1_score(y_true[:, i], y_pred[:, i]))
+        weighted_score = np.array(score_list) @ self.weights_
+        return weighted_score
 
-    def get_parties_weights(self, path, type="linear"):
+    def set_weights(self, path, type="linear"):
         """Return the weights associated to each party. The default weight for a party
         (type='linear') is the mere proportion of deputies in the party among all the
         deputies. if type='log', the weight is passed through natural logartihm.
@@ -223,9 +156,7 @@ class CustomF1Score(BaseScoreType):
             )
         else:
             raise ValueError("Unknown value for argument 'type' :", type)
-        weights = list_count / np.sum(list_count)
-
-        return weights
+        self.weights_ = list_count / np.sum(list_count)
 
 
 # -----------------------
@@ -448,6 +379,7 @@ class EstimatorVotes(SKLearnPipeline):
 
         if self.predict_method == "auto":
             y_pred = estimator_fitted.predict_proba(X)
+            y_pred = y_pred >= 0.5
         elif hasattr(estimator_fitted, self.predict_method):
             # call estimator with the `predict_method`
             est_predict = getattr(estimator_fitted, self.predict_method)
@@ -460,7 +392,7 @@ class EstimatorVotes(SKLearnPipeline):
         if np.any(np.isnan(y_pred)):
             raise ValueError("NaNs found in the predictions.")
 
-        return 1 * (y_pred >= 0.5)
+        return y_pred
 
 
 def make_workflow():
