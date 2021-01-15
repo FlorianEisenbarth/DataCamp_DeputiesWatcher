@@ -207,7 +207,7 @@ class CustomF1Score(BaseScoreType):
         (type='linear') is the mere proportion of deputies in the party among all the
         deputies. if type='log', the weight is passed through natural logartihm.
         """
-        file_name = join(path, "dpt_data", "liste_deputes_excel.csv")
+        file_name = join(path, "data/dpt_data", "liste_deputes_excel.csv")
         dpt_data = pd.read_csv(file_name, sep=";")
         groups_column_name = dpt_data.columns[-1]
         counts = (
@@ -265,7 +265,7 @@ def _read_data(path, train_or_test="train", save=True):
 
 
 def _read_info_actors():
-    filename = "data/nosdeputes.fr_synthese_2020-11-21.csv"
+    filename = "data/dpt_data/nosdeputes.fr_synthese_2020-11-21.csv"
     df = pd.read_csv(filename, sep=";")
     old_cols = [
         "id",

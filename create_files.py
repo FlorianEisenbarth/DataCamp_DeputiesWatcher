@@ -90,7 +90,7 @@ def get_vote_informations_from_json_vote(scrutin):
 
     return votes
 
-def count_votes_per_party(file_name, input_actors_data='dpt_data/liste_deputes_excel.csv'):
+def count_votes_per_party(file_name, input_actors_data='data/dpt_data/liste_deputes_excel.csv'):
     ''' Returns a DataFrame indexed by parties, and with columns corresponding to
         each type of vote ('nonVotants', 'pours', 'contres', 'abstentions'), for the 
         json file corresponding to file_name
