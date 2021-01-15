@@ -416,7 +416,7 @@ def get_estimator():
         return nn
 
     classifier = NeuralNet(
-        create_nn_model, epochs=1000, batch_size=100, verbose=0
+        create_nn_model, epochs=1000, batch_size=500, verbose=0
     )
 
     model = Pipeline(
