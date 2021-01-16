@@ -1,14 +1,13 @@
-# Deputies-Watcher
+## RAMP Challenge: French deputies votes prediction
 
-Prédire pour un parti, pour un amendement d’une loi, la position d’un parti par rapport à cette loi
+Authors: *Florian Eisenbarth, Nicolas Oulianov, Nicolas Boussenina, Armand Foucault, Eloi Alardet*
 
-http://data.assemblee-nationale.fr/acteurs/deputes-en-exercice
+This class group project is about predicting positions of deputies on votes in the French National Assembly.
 
-http://data.assemblee-nationale.fr/travaux-parlementaires/votes
+We collect data from the government and heavily process it to build a custom supervized dataset. 
 
-https://github.com/regardscitoyens/nosdeputes.fr/blob/master/doc/api.md
+We analyze this dataset to highlight *political games* inside the National Assembly.
 
-Week-end prochain :
-Créer repo github
-Télécharger les data sur le github
-Merge les datasets pour créer la table
+Finally, using a Deep Learning model and smart feature engineering, we predict voting positions of a set of 10 political groups. We reach an accuracy of roughly 75%. We create a custom metric, a weighted F1 score tuned to our problem, that scores about 72% (best being 100%).
+
+
